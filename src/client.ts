@@ -7,6 +7,8 @@ import type {
   BreakoutsResponse,
   CompareOptions,
   CompareResponse,
+  CreateWebhookOptions,
+  DeleteWebhookOptions,
   InsiderActivityOptions,
   InsiderActivityResponse,
   OversoldOptions,
@@ -17,13 +19,29 @@ import type {
   TickerAPIConfig,
   UnusualVolumeOptions,
   UnusualVolumeResponse,
+  UpdateWebhookOptions,
   ValuationOptions,
   ValuationResponse,
   WatchlistOptions,
   WatchlistResponse,
+  WebhookCreated,
+  WebhookDeleteResponse,
+  WebhookListResponse,
+  WebhookUpdateResponse,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.tickerapi.ai/v1";
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Webhooks namespace interface
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface WebhookMethods {
+  list(): Promise<APIResponse<WebhookListResponse>>;
+  create(options: CreateWebhookOptions): Promise<APIResponse<WebhookCreated>>;
+  update(options: UpdateWebhookOptions): Promise<APIResponse<WebhookUpdateResponse>>;
+  delete(options: DeleteWebhookOptions): Promise<APIResponse<WebhookDeleteResponse>>;
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Scan namespace interface
@@ -88,6 +106,9 @@ export class TickerAPI {
   /** Namespace for scanner endpoints. */
   public readonly scan: ScanMethods;
 
+  /** Namespace for webhook endpoints. */
+  public readonly webhooks: WebhookMethods;
+
   constructor(config: TickerAPIConfig) {
     if (!config.apiKey) {
       throw new Error("An apiKey is required to create a TickerAPI client.");
@@ -103,6 +124,14 @@ export class TickerAPI {
       unusualVolume: this.scanUnusualVolume.bind(this),
       valuation: this.scanValuation.bind(this),
       insiderActivity: this.scanInsiderActivity.bind(this),
+    };
+
+    // Bind webhook methods so they retain the correct `this` context.
+    this.webhooks = {
+      list: this.webhookList.bind(this),
+      create: this.webhookCreate.bind(this),
+      update: this.webhookUpdate.bind(this),
+      delete: this.webhookDelete.bind(this),
     };
   }
 
@@ -249,6 +278,51 @@ export class TickerAPI {
       date: options?.date,
     });
     return this.request<InsiderActivityResponse>(`/scan/insider-activity${qs}`);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Webhook methods (exposed via this.webhooks.*)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private async webhookList(): Promise<APIResponse<WebhookListResponse>> {
+    return this.request<WebhookListResponse>("/webhooks");
+  }
+
+  private async webhookCreate(
+    options: CreateWebhookOptions,
+  ): Promise<APIResponse<WebhookCreated>> {
+    return this.request<WebhookCreated>("/webhooks", {
+      method: "POST",
+      body: JSON.stringify({
+        url: options.url,
+        events: options.events,
+      }),
+    });
+  }
+
+  private async webhookUpdate(
+    options: UpdateWebhookOptions,
+  ): Promise<APIResponse<WebhookUpdateResponse>> {
+    return this.request<WebhookUpdateResponse>("/webhooks", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: options.id,
+        url: options.url,
+        events: options.events,
+        active: options.active,
+      }),
+    });
+  }
+
+  private async webhookDelete(
+    options: DeleteWebhookOptions,
+  ): Promise<APIResponse<WebhookDeleteResponse>> {
+    return this.request<WebhookDeleteResponse>("/webhooks", {
+      method: "DELETE",
+      body: JSON.stringify({
+        id: options.id,
+      }),
+    });
   }
 
   // ────────────────────────────────────────────────────────────────────────────

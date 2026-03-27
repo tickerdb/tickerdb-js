@@ -1,5 +1,5 @@
 export { TickerAPI } from "./client.js";
-export type { ScanMethods } from "./client.js";
+export type { ScanMethods, WebhookMethods } from "./client.js";
 export { TickerAPIError } from "./errors.js";
 export type {
   APIErrorBody,
@@ -12,6 +12,8 @@ export type {
   BreakoutsResponse,
   CompareOptions,
   CompareResponse,
+  CreateWebhookOptions,
+  DeleteWebhookOptions,
   InsiderActivityOptions,
   InsiderActivityResponse,
   InsiderDirection,
@@ -28,6 +30,7 @@ export type {
   UnusualVolumeOptions,
   UnusualVolumeResponse,
   UnusualVolumeSortBy,
+  UpdateWebhookOptions,
   ValuationDirection,
   ValuationOptions,
   ValuationResponse,
@@ -36,4 +39,10 @@ export type {
   VolumeRatioBand,
   WatchlistOptions,
   WatchlistResponse,
+  Webhook,
+  WebhookCreated,
+  WebhookDeleteResponse,
+  WebhookEvents,
+  WebhookListResponse,
+  WebhookUpdateResponse,
 } from "./types.js";

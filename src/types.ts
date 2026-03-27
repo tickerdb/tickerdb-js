@@ -188,3 +188,59 @@ export interface InsiderActivityOptions extends Omit<BaseScanOptions, "asset_cla
 }
 
 export type InsiderActivityResponse = Record<string, unknown>;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Webhook CRUD
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type WebhookEvents = Record<string, boolean>;
+
+export interface CreateWebhookOptions {
+  url: string;
+  events?: WebhookEvents;
+}
+
+export interface UpdateWebhookOptions {
+  id: string;
+  url?: string;
+  events?: WebhookEvents;
+  active?: boolean;
+}
+
+export interface DeleteWebhookOptions {
+  id: string;
+}
+
+export interface Webhook {
+  id: string;
+  url: string;
+  events: WebhookEvents;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookCreated {
+  id: string;
+  url: string;
+  secret: string;
+  events: WebhookEvents;
+  active: boolean;
+  created_at: string;
+}
+
+export interface WebhookListResponse {
+  webhooks: Webhook[];
+  webhook_count: number;
+  webhook_limit: number;
+}
+
+export interface WebhookUpdateResponse {
+  updated: boolean;
+  id: string;
+}
+
+export interface WebhookDeleteResponse {
+  deleted: string;
+  webhook_count: number;
+}
