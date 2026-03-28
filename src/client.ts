@@ -22,6 +22,8 @@ import type {
   UpdateWebhookOptions,
   ValuationOptions,
   ValuationResponse,
+  WatchlistChangesOptions,
+  WatchlistChangesResponse,
   WatchlistOptions,
   WatchlistResponse,
   WebhookCreated,
@@ -193,6 +195,25 @@ export class TickerAPI {
         timeframe: options?.timeframe,
       }),
     });
+  }
+
+  /**
+   * Get field-level state changes for your saved watchlist tickers.
+   *
+   * Returns structured diffs showing what changed since the last pipeline run
+   * (day-over-day for daily, week-over-week for weekly). Available on all tiers.
+   *
+   * @param options - Optional parameters (timeframe).
+   */
+  async watchlistChanges(
+    options?: WatchlistChangesOptions,
+  ): Promise<APIResponse<WatchlistChangesResponse>> {
+    const params = new URLSearchParams();
+    if (options?.timeframe) params.set("timeframe", options.timeframe);
+    const qs = params.toString();
+    return this.request<WatchlistChangesResponse>(
+      `/watchlist/changes${qs ? `?${qs}` : ""}`,
+    );
   }
 
   /**

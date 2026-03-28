@@ -80,6 +80,18 @@ const { data: weekly } = await client.watchlist(["AAPL", "MSFT"], {
 });
 ```
 
+### Watchlist Changes
+
+Get field-level state changes for your saved watchlist tickers since the last pipeline run.
+
+```typescript
+const { data } = await client.watchlistChanges();
+
+const { data: weekly } = await client.watchlistChanges({
+  timeframe: "weekly",
+});
+```
+
 ### Assets
 
 List all available assets.

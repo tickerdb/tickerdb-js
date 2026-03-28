@@ -92,6 +92,28 @@ export interface WatchlistOptions {
 export type WatchlistResponse = Record<string, unknown>;
 
 // ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/watchlist/changes
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface WatchlistChangesOptions {
+  timeframe?: Timeframe;
+}
+
+export interface WatchlistChangeEntry {
+  field: string;
+  from: unknown;
+  to: unknown;
+}
+
+export interface WatchlistChangesResponse {
+  timeframe: string;
+  run_date: string | null;
+  changes: Record<string, WatchlistChangeEntry[]>;
+  tickers_checked: number;
+  tickers_changed: number;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/assets
 // ──────────────────────────────────────────────────────────────────────────────
 
