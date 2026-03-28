@@ -169,7 +169,7 @@ export type VolumeRatioBand =
   | "extremely_low"
   | "low"
   | "normal"
-  | "elevated"
+  | "above_average"
   | "high"
   | "extremely_high";
 export type UnusualVolumeSortBy = "volume_percentile";
@@ -186,7 +186,7 @@ export type UnusualVolumeResponse = Record<string, unknown>;
 // ──────────────────────────────────────────────────────────────────────────────
 
 export type ValuationDirection = "undervalued" | "overvalued" | "all";
-export type ValuationSeverity = "deep_value" | "extreme_premium";
+export type ValuationSeverity = "deep_value" | "deeply_overvalued";
 export type ValuationSortBy = "valuation_percentile" | "pe_vs_history";
 
 export interface ValuationOptions extends Omit<BaseScanOptions, "asset_class"> {
