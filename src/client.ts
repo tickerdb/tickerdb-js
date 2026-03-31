@@ -3,6 +3,7 @@ import type {
   APIErrorBody,
   APIResponse,
   AssetsResponse,
+  SectorsResponse,
   BreakoutsOptions,
   BreakoutsResponse,
   CompareOptions,
@@ -221,6 +222,14 @@ export class TickerAPI {
    */
   async assets(): Promise<APIResponse<AssetsResponse>> {
     return this.request<AssetsResponse>("/assets");
+  }
+
+  /**
+   * List all valid sector values with asset counts.
+   * Use these values with the `sector` parameter on scan endpoints.
+   */
+  async sectors(): Promise<APIResponse<SectorsResponse>> {
+    return this.request<SectorsResponse>("/list/sectors");
   }
 
   // ────────────────────────────────────────────────────────────────────────────

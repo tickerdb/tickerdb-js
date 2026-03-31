@@ -125,6 +125,20 @@ export interface WatchlistChangesResponse {
 export type AssetsResponse = Record<string, unknown>;
 
 // ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/list/sectors
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface SectorEntry {
+  name: string;
+  asset_count: number;
+}
+
+export interface SectorsResponse {
+  sectors: SectorEntry[];
+  total_sectors: number;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Scan endpoints – shared
 // ──────────────────────────────────────────────────────────────────────────────
 

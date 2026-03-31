@@ -18,6 +18,8 @@ export type {
   InsiderActivityResponse,
   InsiderDirection,
   InsiderSortBy,
+  SectorEntry,
+  SectorsResponse,
   OversoldOptions,
   OversoldResponse,
   OversoldSeverity,
