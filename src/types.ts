@@ -105,10 +105,15 @@ export interface WatchlistChangeEntry {
   to: unknown;
 }
 
+export interface TickerContext {
+  last_changed_date: string | null;
+}
+
 export interface WatchlistChangesResponse {
   timeframe: string;
   run_date: string | null;
   changes: Record<string, WatchlistChangeEntry[]>;
+  ticker_context: Record<string, TickerContext>;
   tickers_checked: number;
   tickers_changed: number;
 }
