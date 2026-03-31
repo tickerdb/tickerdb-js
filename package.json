@@ -1,6 +1,6 @@
 {
   "name": "tickerapi",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Official Node.js/TypeScript SDK for the TickerAPI financial data API",
   "author": "TickerAPI",
   "license": "MIT",
