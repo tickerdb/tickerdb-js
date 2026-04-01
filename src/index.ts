@@ -14,6 +14,8 @@ export type {
   CompareResponse,
   CreateWebhookOptions,
   DeleteWebhookOptions,
+  EventsOptions,
+  EventsResponse,
   InsiderActivityOptions,
   InsiderActivityResponse,
   InsiderDirection,

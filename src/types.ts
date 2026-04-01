@@ -285,3 +285,40 @@ export interface WebhookDeleteResponse {
   deleted: string;
   webhook_count: number;
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/events
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface EventsOptions {
+  /** Ticker symbol (required). */
+  ticker: string;
+  /** Band field name, e.g. "rsi_zone", "trend_direction" (required). */
+  field: string;
+  /** "daily" or "weekly". Defaults to "daily". */
+  timeframe?: Timeframe;
+  /** Filter to a specific band value, e.g. "deep_oversold". */
+  band?: string;
+  /** Max number of results (1-100, default 10). */
+  limit?: number;
+  /** Return events before this date (YYYY-MM-DD). */
+  before?: string;
+  /** Return events after this date (YYYY-MM-DD). */
+  after?: string;
+}
+
+export interface EventsResponse {
+  ticker: string;
+  field: string;
+  timeframe: Timeframe;
+  events: Array<{
+    date: string;
+    band: string;
+    prev_band: string;
+    duration_days?: number | null;
+    duration_weeks?: number | null;
+    aftermath: Record<string, { performance: string } | null> | null;
+  }>;
+  total_occurrences: number;
+  query_range: string;
+}

@@ -31,6 +31,8 @@ import type {
   WebhookDeleteResponse,
   WebhookListResponse,
   WebhookUpdateResponse,
+  EventsOptions,
+  EventsResponse,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.tickerapi.ai/v1";
@@ -230,6 +232,26 @@ export class TickerAPI {
    */
   async sectors(): Promise<APIResponse<SectorsResponse>> {
     return this.request<SectorsResponse>("/list/sectors");
+  }
+
+  /**
+   * Search for historical band transition events for a ticker.
+   *
+   * @param options - Query parameters including required ticker and field.
+   */
+  async events(
+    options: EventsOptions,
+  ): Promise<APIResponse<EventsResponse>> {
+    const qs = buildQueryString({
+      ticker: options.ticker,
+      field: options.field,
+      timeframe: options.timeframe,
+      band: options.band,
+      limit: options.limit,
+      before: options.before,
+      after: options.after,
+    });
+    return this.request<EventsResponse>(`/events${qs}`);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
