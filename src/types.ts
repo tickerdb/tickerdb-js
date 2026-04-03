@@ -305,6 +305,12 @@ export interface EventsOptions {
   before?: string;
   /** Return events after this date (YYYY-MM-DD). */
   after?: string;
+  /** Cross-asset correlation: a second ticker to filter against (e.g. "SPY"). Requires context_field and context_band. Plus/Pro only. Costs 2 credits. */
+  context_ticker?: string;
+  /** Band field to check on the context ticker (e.g. "trend_direction"). */
+  context_field?: string;
+  /** Only return events where the context ticker was in this band on the event date (e.g. "downtrend"). */
+  context_band?: string;
 }
 
 export interface EventsResponse {
@@ -321,4 +327,10 @@ export interface EventsResponse {
   }>;
   total_occurrences: number;
   query_range: string;
+  /** Present when cross-asset correlation is used. */
+  context?: {
+    ticker: string;
+    field: string;
+    band: string;
+  };
 }

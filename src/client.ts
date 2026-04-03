@@ -250,6 +250,9 @@ export class TickerAPI {
       limit: options.limit,
       before: options.before,
       after: options.after,
+      context_ticker: options.context_ticker,
+      context_field: options.context_field,
+      context_band: options.context_band,
     });
     return this.request<EventsResponse>(`/events${qs}`);
   }
