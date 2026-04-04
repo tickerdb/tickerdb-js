@@ -17,6 +17,17 @@ export type Timeframe = "daily" | "weekly";
 
 export type AssetClass = "stock" | "crypto" | "etf" | "all";
 
+export type Stability = "fresh" | "holding" | "established" | "volatile";
+
+/** Full band metadata returned for Plus/Pro tiers on summary, watchlist, and scan endpoints. */
+export interface BandMeta {
+  timeframe: "daily" | "weekly";
+  periods_in_current_state: number;
+  flips_recent: number;
+  flips_lookback: string;
+  stability: Stability;
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Rate limit info (parsed from response headers)
 // ──────────────────────────────────────────────────────────────────────────────
@@ -103,6 +114,10 @@ export interface WatchlistChangeEntry {
   field: string;
   from: unknown;
   to: unknown;
+  stability?: Stability;
+  periods_in_current_state?: number;
+  flips_recent?: number;
+  flips_lookback?: string;
 }
 
 export interface TickerContext {
@@ -323,6 +338,12 @@ export interface EventsResponse {
     prev_band: string;
     duration_days?: number | null;
     duration_weeks?: number | null;
+    /** Stability label at the time of this band entry (Plus/Pro only). */
+    stability_at_entry?: Stability | null;
+    /** Number of recent flips at the time of entry (Plus/Pro only). */
+    flips_recent_at_entry?: number | null;
+    /** Lookback window used for flip counting (Plus/Pro only). */
+    flips_lookback?: string | null;
     aftermath: Record<string, { performance: string } | null> | null;
   }>;
   total_occurrences: number;

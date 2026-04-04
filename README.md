@@ -157,6 +157,31 @@ const { data } = await client.scan.insiderActivity({
 });
 ```
 
+### Band Stability Metadata
+
+Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
+
+```typescript
+const { data } = await client.summary("AAPL");
+
+// The band value itself
+console.log(data.trend.direction);          // "uptrend"
+
+// Stability metadata for that band
+console.log(data.trend.direction_meta);
+// { stability: "established", periods_in_current_state: 18, flips_recent: 1, flips_lookback: 20 }
+
+// New types available
+import type { Stability, BandMeta } from "tickerapi";
+```
+
+`Stability` is one of `"fresh"`, `"holding"`, `"established"`, or `"volatile"`. `BandMeta` contains the full metadata object. Stability metadata is available on Plus and Pro tiers only.
+
+Stability context also appears in related endpoints:
+
+- **Watchlist Changes** include stability fields for each changed band.
+- **Scanners** return `*_stability` and `*_flips_recent` columns for relevant bands.
+
 ## Error Handling
 
 The SDK throws a `TickerAPIError` for all non-2xx responses. The error includes the HTTP status code, a machine-readable error type, a human-readable message, and optional metadata.
