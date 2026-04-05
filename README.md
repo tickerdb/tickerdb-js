@@ -56,6 +56,18 @@ const { data: weekly } = await client.summary("AAPL", {
 });
 ```
 
+### History
+
+Get a historical series for one ticker across a date range.
+
+```typescript
+const { data } = await client.history("AAPL", {
+  timeframe: "daily",
+  start: "2025-01-01",
+  end: "2025-03-31",
+});
+```
+
 ### Compare
 
 Compare multiple tickers side-by-side.

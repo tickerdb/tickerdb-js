@@ -17,6 +17,8 @@ export type {
   DeleteWebhookOptions,
   EventsOptions,
   EventsResponse,
+  HistoryOptions,
+  HistoryResponse,
   InsiderActivityOptions,
   InsiderActivityResponse,
   InsiderDirection,

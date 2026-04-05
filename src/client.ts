@@ -10,6 +10,8 @@ import type {
   CompareResponse,
   CreateWebhookOptions,
   DeleteWebhookOptions,
+  HistoryOptions,
+  HistoryResponse,
   InsiderActivityOptions,
   InsiderActivityResponse,
   OversoldOptions,
@@ -160,6 +162,23 @@ export class TickerAPI {
     });
     return this.request<SummaryResponse>(
       `/summary/${encodeURIComponent(ticker)}${qs}`,
+    );
+  }
+
+  /**
+   * Get a historical series for one ticker across a date range.
+   */
+  async history(
+    ticker: string,
+    options: HistoryOptions,
+  ): Promise<APIResponse<HistoryResponse>> {
+    const qs = buildQueryString({
+      timeframe: options.timeframe,
+      start: options.start,
+      end: options.end,
+    });
+    return this.request<HistoryResponse>(
+      `/history/${encodeURIComponent(ticker)}${qs}`,
     );
   }
 

@@ -81,6 +81,31 @@ export interface SummaryOptions {
  *  SDK stays forward-compatible as the API evolves. */
 export type SummaryResponse = Record<string, unknown>;
 
+export interface HistoryOptions {
+  /** "daily" or "weekly". Defaults to "daily". */
+  timeframe?: Timeframe;
+  /** Inclusive range start date (YYYY-MM-DD). */
+  start: string;
+  /** Inclusive range end date (YYYY-MM-DD). */
+  end: string;
+}
+
+export interface HistoryRow {
+  date: string;
+  schema_version: string;
+  summary: Record<string, unknown>;
+  levels?: Record<string, unknown> | null;
+}
+
+export interface HistoryResponse {
+  ticker: string;
+  timeframe: Timeframe;
+  start: string;
+  end: string;
+  row_count: number;
+  rows: HistoryRow[];
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/compare
 // ──────────────────────────────────────────────────────────────────────────────
