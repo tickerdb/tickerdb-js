@@ -2,10 +2,10 @@
 // Client configuration
 // ──────────────────────────────────────────────────────────────────────────────
 
-export interface TickerAPIConfig {
-  /** Your TickerAPI API key. */
+export interface TickerDBConfig {
+  /** Your TickerDB API key. */
   apiKey: string;
-  /** Override the default base URL (https://api.tickerapi.ai/v1). */
+  /** Override the default base URL (https://api.tickerdb.com/v1). */
   baseUrl?: string;
 }
 

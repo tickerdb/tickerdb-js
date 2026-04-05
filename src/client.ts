@@ -1,4 +1,4 @@
-import { TickerAPIError } from "./errors.js";
+import { TickerDBError } from "./errors.js";
 import type {
   APIErrorBody,
   APIResponse,
@@ -19,7 +19,7 @@ import type {
   RateLimitInfo,
   SummaryOptions,
   SummaryResponse,
-  TickerAPIConfig,
+  TickerDBConfig,
   UnusualVolumeOptions,
   UnusualVolumeResponse,
   UpdateWebhookOptions,
@@ -37,7 +37,7 @@ import type {
   EventsResponse,
 } from "./types.js";
 
-const DEFAULT_BASE_URL = "https://api.tickerapi.ai/v1";
+const DEFAULT_BASE_URL = "https://api.tickerdb.com/v1";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Webhooks namespace interface
@@ -106,7 +106,7 @@ function buildQueryString(params: Record<string, unknown>): string {
 // Main client class
 // ──────────────────────────────────────────────────────────────────────────────
 
-export class TickerAPI {
+export class TickerDB {
   private readonly apiKey: string;
   private readonly baseUrl: string;
 
@@ -116,9 +116,9 @@ export class TickerAPI {
   /** Namespace for webhook endpoints. */
   public readonly webhooks: WebhookMethods;
 
-  constructor(config: TickerAPIConfig) {
+  constructor(config: TickerDBConfig) {
     if (!config.apiKey) {
-      throw new Error("An apiKey is required to create a TickerAPI client.");
+      throw new Error("An apiKey is required to create a TickerDB client.");
     }
 
     this.apiKey = config.apiKey;
@@ -441,7 +441,7 @@ export class TickerAPI {
       const resetAt =
         errorBody?.error?.reset ?? rateLimit.requestReset ?? undefined;
 
-      throw new TickerAPIError(
+      throw new TickerDBError(
         response.status,
         errType,
         errMessage,

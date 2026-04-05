@@ -1,6 +1,6 @@
-export { TickerAPI } from "./client.js";
+export { TickerDB } from "./client.js";
 export type { ScanMethods, WebhookMethods } from "./client.js";
-export { TickerAPIError } from "./errors.js";
+export { TickerDBError } from "./errors.js";
 export type {
   APIErrorBody,
   APIResponse,
@@ -33,7 +33,7 @@ export type {
   Stability,
   SummaryOptions,
   SummaryResponse,
-  TickerAPIConfig,
+  TickerDBConfig,
   Timeframe,
   UnusualVolumeOptions,
   UnusualVolumeResponse,

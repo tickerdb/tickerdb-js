@@ -1,16 +1,16 @@
 {
-  "name": "tickerapi",
+  "name": "tickerdb",
   "version": "1.7.2",
-  "description": "Official Node.js/TypeScript SDK for the TickerAPI financial data API",
-  "author": "TickerAPI",
+  "description": "Official Node.js/TypeScript SDK for the TickerDB financial data API",
+  "author": "TickerDB",
   "license": "MIT",
-  "homepage": "https://tickerapi.ai",
+  "homepage": "https://tickerdb.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tickerapi/tickerapi-sdk-js"
+    "url": "https://github.com/tickerdb/tickerdb-sdk-js"
   },
   "keywords": [
-    "tickerapi",
+    "tickerdb",
     "finance",
     "stocks",
     "crypto",

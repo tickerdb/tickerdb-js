@@ -1,8 +1,8 @@
-# tickerapi
+# tickerdb
 
-[![npm version](https://img.shields.io/npm/v/tickerapi.svg)](https://www.npmjs.com/package/tickerapi)
+[![npm version](https://img.shields.io/npm/v/tickerdb.svg)](https://www.npmjs.com/package/tickerdb)
 
-Official Node.js/TypeScript SDK for the [TickerAPI](https://tickerapi.ai) financial data API.
+Official Node.js/TypeScript SDK for the [TickerDB](https://tickerdb.com) financial data API.
 
 - Zero dependencies -- uses native `fetch` (Node.js 18+)
 - First-class TypeScript support with full type definitions
@@ -12,15 +12,15 @@ Official Node.js/TypeScript SDK for the [TickerAPI](https://tickerapi.ai) financ
 ## Installation
 
 ```bash
-npm install tickerapi
+npm install tickerdb
 ```
 
 ## Quick Start
 
 ```typescript
-import { TickerAPI } from "tickerapi";
+import { TickerDB } from "tickerdb";
 
-const client = new TickerAPI({ apiKey: "YOUR_API_KEY" });
+const client = new TickerDB({ apiKey: "YOUR_API_KEY" });
 
 // Get a summary for a single ticker
 const { data, rateLimit } = await client.summary("AAPL");
@@ -33,12 +33,12 @@ console.log(`Requests remaining: ${rateLimit.requestsRemaining}`);
 ### Initialize the client
 
 ```typescript
-import { TickerAPI } from "tickerapi";
+import { TickerDB } from "tickerdb";
 
-const client = new TickerAPI({
+const client = new TickerDB({
   apiKey: "YOUR_API_KEY",
   // Optional: override the default base URL
-  // baseUrl: "https://api.tickerapi.ai/v1",
+  // baseUrl: "https://api.tickerdb.com/v1",
 });
 ```
 
@@ -184,7 +184,7 @@ console.log(data.trend.direction_meta);
 // { stability: "established", periods_in_current_state: 18, flips_recent: 1, flips_lookback: 20 }
 
 // New types available
-import type { Stability, BandMeta } from "tickerapi";
+import type { Stability, BandMeta } from "tickerdb";
 ```
 
 `Stability` is one of `"fresh"`, `"holding"`, `"established"`, or `"volatile"`. `BandMeta` contains the full metadata object. Stability metadata is available on Plus and Pro tiers only.
@@ -196,17 +196,17 @@ Stability context also appears in related endpoints:
 
 ## Error Handling
 
-The SDK throws a `TickerAPIError` for all non-2xx responses. The error includes the HTTP status code, a machine-readable error type, a human-readable message, and optional metadata.
+The SDK throws a `TickerDBError` for all non-2xx responses. The error includes the HTTP status code, a machine-readable error type, a human-readable message, and optional metadata.
 
 ```typescript
-import { TickerAPI, TickerAPIError } from "tickerapi";
+import { TickerDB, TickerDBError } from "tickerdb";
 
-const client = new TickerAPI({ apiKey: "YOUR_API_KEY" });
+const client = new TickerDB({ apiKey: "YOUR_API_KEY" });
 
 try {
   const { data } = await client.summary("AAPL");
 } catch (error) {
-  if (error instanceof TickerAPIError) {
+  if (error instanceof TickerDBError) {
     console.error(`Status: ${error.status}`);
     console.error(`Type: ${error.type}`);
     console.error(`Message: ${error.message}`);
@@ -245,8 +245,8 @@ console.log(rateLimit.hourlyRequestReset);    // Hourly reset timestamp
 
 ## Links
 
-- [API Documentation](https://tickerapi.ai/docs)
-- [Website](https://tickerapi.ai)
+- [API Documentation](https://tickerdb.com/docs)
+- [Website](https://tickerdb.com)
 
 ## License
 

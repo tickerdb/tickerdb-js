@@ -1,7 +1,7 @@
 /**
- * Error thrown by the TickerAPI SDK when the API returns a non-2xx response.
+ * Error thrown by the TickerDB SDK when the API returns a non-2xx response.
  */
-export class TickerAPIError extends Error {
+export class TickerDBError extends Error {
   /** HTTP status code returned by the API. */
   public readonly status: number;
   /** Machine-readable error type from the API (e.g. "invalid_token"). */
@@ -19,7 +19,7 @@ export class TickerAPIError extends Error {
     resetAt?: string,
   ) {
     super(message);
-    this.name = "TickerAPIError";
+    this.name = "TickerDBError";
     this.status = status;
     this.type = type;
     this.upgradeUrl = upgradeUrl;
