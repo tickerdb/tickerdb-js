@@ -105,7 +105,7 @@ export type SummaryResponse = Record<string, unknown>;
 
 export interface SearchOptions {
   /** JSON-encoded filter object for search criteria. */
-  filters?: Record<string, unknown>;
+  filters?: Array<{ field: string; op: string; value: unknown }> | Record<string, unknown>;
   /** "daily" or "weekly". Defaults to "daily". */
   timeframe?: Timeframe;
   /** Max results to return. */

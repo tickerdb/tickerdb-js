@@ -1,6 +1,6 @@
 {
   "name": "tickerdb",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Official Node.js/TypeScript SDK for the TickerDB financial data API",
   "author": "TickerDB",
   "license": "MIT",
@@ -41,8 +41,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build:esm": "tsc --project tsconfig.esm.json",
-    "build:cjs": "tsc --project tsconfig.cjs.json",
+    "build:esm": "npx tsc --project tsconfig.esm.json",
+    "build:cjs": "npx tsc --project tsconfig.cjs.json",
     "build": "npm run build:esm && npm run build:cjs",
     "prepublishOnly": "npm run build"
   },
