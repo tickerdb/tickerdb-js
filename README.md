@@ -56,27 +56,25 @@ const { data: weekly } = await client.summary("AAPL", {
 });
 ```
 
-### History
+### Summary with Date Range
 
-Get a historical series for one ticker across a date range.
+Get a summary series for one ticker across a date range by passing `start` and `end`.
 
 ```typescript
-const { data } = await client.history("AAPL", {
-  timeframe: "daily",
+const { data } = await client.summary("AAPL", {
   start: "2025-01-01",
   end: "2025-03-31",
 });
 ```
 
-### Compare
+### Summary with Events Filter
 
-Compare multiple tickers side-by-side.
+Query event occurrences for a specific band field.
 
 ```typescript
-const { data } = await client.compare(["AAPL", "MSFT", "GOOGL"]);
-
-const { data: weekly } = await client.compare(["AAPL", "MSFT"], {
-  timeframe: "weekly",
+const { data } = await client.summary("AAPL", {
+  field: "rsi_zone",
+  band: "deep_oversold",
 });
 ```
 
@@ -104,71 +102,6 @@ const { data: weekly } = await client.watchlistChanges({
 });
 ```
 
-### Assets
-
-List all available assets.
-
-```typescript
-const { data } = await client.assets();
-```
-
-### Scanners
-
-All scanner endpoints are available under the `scan` namespace.
-
-#### Oversold Scanner
-
-```typescript
-const { data } = await client.scan.oversold({
-  asset_class: "stock",
-  min_severity: "deep_oversold",
-  sort_by: "severity",
-  limit: 10,
-});
-```
-
-#### Breakout Scanner
-
-```typescript
-const { data } = await client.scan.breakouts({
-  direction: "bullish",
-  asset_class: "stock",
-  sort_by: "volume_ratio",
-  limit: 20,
-});
-```
-
-#### Unusual Volume Scanner
-
-```typescript
-const { data } = await client.scan.unusualVolume({
-  min_ratio_band: "high",
-  asset_class: "stock",
-  limit: 15,
-});
-```
-
-#### Valuation Scanner
-
-```typescript
-const { data } = await client.scan.valuation({
-  direction: "undervalued",
-  min_severity: "deep_value",
-  sort_by: "valuation_percentile",
-  limit: 10,
-});
-```
-
-#### Insider Activity Scanner
-
-```typescript
-const { data } = await client.scan.insiderActivity({
-  direction: "buying",
-  sort_by: "zone_severity",
-  limit: 10,
-});
-```
-
 ### Band Stability Metadata
 
 Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
@@ -189,10 +122,21 @@ import type { Stability, BandMeta } from "tickerdb";
 
 `Stability` is one of `"fresh"`, `"holding"`, `"established"`, or `"volatile"`. `BandMeta` contains the full metadata object. Stability metadata is available on Plus and Pro tiers only.
 
-Stability context also appears in related endpoints:
+Stability context also appears in **Watchlist Changes**, which include stability fields for each changed band.
 
-- **Watchlist Changes** include stability fields for each changed band.
-- **Scanners** return `*_stability` and `*_flips_recent` columns for relevant bands.
+### Query Builder
+
+The SDK includes a fluent query builder for searching assets by categorical state. Chain methods in order: select, filters, sort, limit.
+
+```typescript
+const { data } = await client.query()
+  .select('ticker', 'sector', 'momentum_rsi_zone', 'fundamentals_valuation_zone')
+  .eq('momentum_rsi_zone', 'oversold')
+  .eq('sector', 'Technology')
+  .sort('extremes_condition_percentile', 'asc')
+  .limit(10)
+  .execute()
+```
 
 ## Error Handling
 

@@ -2,29 +2,16 @@ import { TickerDBError } from "./errors.js";
 import type {
   APIErrorBody,
   APIResponse,
-  AssetsResponse,
-  SectorsResponse,
-  BreakoutsOptions,
-  BreakoutsResponse,
-  CompareOptions,
-  CompareResponse,
   CreateWebhookOptions,
   DeleteWebhookOptions,
-  HistoryOptions,
-  HistoryResponse,
-  InsiderActivityOptions,
-  InsiderActivityResponse,
-  OversoldOptions,
-  OversoldResponse,
   RateLimitInfo,
+  SchemaResponse,
+  SearchOptions,
+  SearchResponse,
   SummaryOptions,
   SummaryResponse,
   TickerDBConfig,
-  UnusualVolumeOptions,
-  UnusualVolumeResponse,
   UpdateWebhookOptions,
-  ValuationOptions,
-  ValuationResponse,
   WatchlistChangesOptions,
   WatchlistChangesResponse,
   WatchlistOptions,
@@ -33,11 +20,101 @@ import type {
   WebhookDeleteResponse,
   WebhookListResponse,
   WebhookUpdateResponse,
-  EventsOptions,
-  EventsResponse,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.tickerdb.com/v1";
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Fluent search query builder
+// ──────────────────────────────────────────────────────────────────────────────
+
+export class SearchBuilder {
+  private filters: Array<{ field: string; op: string; value: unknown }> = [];
+  private _fields?: string[];
+  private _sortBy?: string;
+  private _sortDirection?: "asc" | "desc";
+  private _timeframe?: "daily" | "weekly";
+  private _limit?: number;
+  private _offset?: number;
+  private client: TickerDB;
+
+  constructor(client: TickerDB) {
+    this.client = client;
+  }
+
+  eq(field: string, value: string | number | boolean): this {
+    this.filters.push({ field, op: "eq", value });
+    return this;
+  }
+
+  neq(field: string, value: string | number | boolean): this {
+    this.filters.push({ field, op: "neq", value });
+    return this;
+  }
+
+  in(field: string, values: (string | number)[]): this {
+    this.filters.push({ field, op: "in", value: values });
+    return this;
+  }
+
+  gt(field: string, value: number): this {
+    this.filters.push({ field, op: "gt", value });
+    return this;
+  }
+
+  gte(field: string, value: number): this {
+    this.filters.push({ field, op: "gte", value });
+    return this;
+  }
+
+  lt(field: string, value: number): this {
+    this.filters.push({ field, op: "lt", value });
+    return this;
+  }
+
+  lte(field: string, value: number): this {
+    this.filters.push({ field, op: "lte", value });
+    return this;
+  }
+
+  select(...fields: string[]): this {
+    this._fields = fields;
+    return this;
+  }
+
+  sort(field: string, direction: "asc" | "desc" = "desc"): this {
+    this._sortBy = field;
+    this._sortDirection = direction;
+    return this;
+  }
+
+  limit(n: number): this {
+    this._limit = n;
+    return this;
+  }
+
+  offset(n: number): this {
+    this._offset = n;
+    return this;
+  }
+
+  timeframe(tf: "daily" | "weekly"): this {
+    this._timeframe = tf;
+    return this;
+  }
+
+  async execute(): Promise<APIResponse<SearchResponse>> {
+    return this.client.search({
+      filters: this.filters,
+      fields: this._fields,
+      sort_by: this._sortBy,
+      sort_direction: this._sortDirection,
+      timeframe: this._timeframe,
+      limit: this._limit,
+      offset: this._offset,
+    });
+  }
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Webhooks namespace interface
@@ -48,25 +125,6 @@ export interface WebhookMethods {
   create(options: CreateWebhookOptions): Promise<APIResponse<WebhookCreated>>;
   update(options: UpdateWebhookOptions): Promise<APIResponse<WebhookUpdateResponse>>;
   delete(options: DeleteWebhookOptions): Promise<APIResponse<WebhookDeleteResponse>>;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Scan namespace interface
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface ScanMethods {
-  /** Scan for oversold assets. */
-  oversold(options?: OversoldOptions): Promise<APIResponse<OversoldResponse>>;
-  /** Scan for price breakouts. */
-  breakouts(options?: BreakoutsOptions): Promise<APIResponse<BreakoutsResponse>>;
-  /** Scan for unusual volume activity. */
-  unusualVolume(options?: UnusualVolumeOptions): Promise<APIResponse<UnusualVolumeResponse>>;
-  /** Scan for valuation opportunities. */
-  valuation(options?: ValuationOptions): Promise<APIResponse<ValuationResponse>>;
-  /** Scan for insider buying/selling activity. */
-  insiderActivity(
-    options?: InsiderActivityOptions,
-  ): Promise<APIResponse<InsiderActivityResponse>>;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -110,9 +168,6 @@ export class TickerDB {
   private readonly apiKey: string;
   private readonly baseUrl: string;
 
-  /** Namespace for scanner endpoints. */
-  public readonly scan: ScanMethods;
-
   /** Namespace for webhook endpoints. */
   public readonly webhooks: WebhookMethods;
 
@@ -123,15 +178,6 @@ export class TickerDB {
 
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-
-    // Bind scan methods so they retain the correct `this` context.
-    this.scan = {
-      oversold: this.scanOversold.bind(this),
-      breakouts: this.scanBreakouts.bind(this),
-      unusualVolume: this.scanUnusualVolume.bind(this),
-      valuation: this.scanValuation.bind(this),
-      insiderActivity: this.scanInsiderActivity.bind(this),
-    };
 
     // Bind webhook methods so they retain the correct `this` context.
     this.webhooks = {
@@ -149,8 +195,14 @@ export class TickerDB {
   /**
    * Get a detailed summary for a single ticker.
    *
+   * Supports 4 modes depending on which options are provided:
+   * - **Snapshot** (default): Current categorical state.
+   * - **Historical snapshot**: Pass `date` for a point-in-time snapshot.
+   * - **Historical series**: Pass `start`/`end` for a date range of snapshots.
+   * - **Events**: Pass `field` (and optionally `band`) for band transition history with aftermath.
+   *
    * @param ticker - The asset ticker symbol (e.g. "AAPL").
-   * @param options - Optional query parameters.
+   * @param options - Optional query parameters controlling mode and filters.
    */
   async summary(
     ticker: string,
@@ -159,45 +211,63 @@ export class TickerDB {
     const qs = buildQueryString({
       timeframe: options?.timeframe,
       date: options?.date,
+      start: options?.start,
+      end: options?.end,
+      field: options?.field,
+      band: options?.band,
+      limit: options?.limit,
+      before: options?.before,
+      after: options?.after,
+      context_ticker: options?.context_ticker,
+      context_field: options?.context_field,
+      context_band: options?.context_band,
     });
-    return this.request<SummaryResponse>(
-      `/summary/${encodeURIComponent(ticker)}${qs}`,
-    );
+    return this.request<SummaryResponse>(`/summary/${encodeURIComponent(ticker)}${qs}`);
   }
 
   /**
-   * Get a historical series for one ticker across a date range.
-   */
-  async history(
-    ticker: string,
-    options: HistoryOptions,
-  ): Promise<APIResponse<HistoryResponse>> {
-    const qs = buildQueryString({
-      timeframe: options.timeframe,
-      start: options.start,
-      end: options.end,
-    });
-    return this.request<HistoryResponse>(
-      `/history/${encodeURIComponent(ticker)}${qs}`,
-    );
-  }
-
-  /**
-   * Compare multiple tickers side-by-side.
+   * Create a fluent query builder for the search endpoint.
    *
-   * @param tickers - Array of ticker symbols to compare.
-   * @param options - Optional query parameters.
+   * @example
+   * ```ts
+   * const results = await client.query()
+   *   .eq('momentum_rsi_zone', 'oversold')
+   *   .eq('sector', 'Technology')
+   *   .select('ticker', 'sector', 'momentum_rsi_zone')
+   *   .sort('extremes_condition_percentile', 'asc')
+   *   .limit(10)
+   *   .execute();
+   * ```
    */
-  async compare(
-    tickers: string[],
-    options?: CompareOptions,
-  ): Promise<APIResponse<CompareResponse>> {
+  query(): SearchBuilder {
+    return new SearchBuilder(this);
+  }
+
+  /**
+   * Search for assets matching filter criteria.
+   *
+   * @param options - Search filters and pagination.
+   */
+  async search(
+    options?: SearchOptions,
+  ): Promise<APIResponse<SearchResponse>> {
     const qs = buildQueryString({
-      tickers: tickers.join(","),
+      filters: options?.filters ? JSON.stringify(options.filters) : undefined,
       timeframe: options?.timeframe,
-      date: options?.date,
+      limit: options?.limit,
+      offset: options?.offset,
+      fields: options?.fields ? JSON.stringify(options.fields) : undefined,
+      sort_by: options?.sort_by,
+      sort_direction: options?.sort_direction,
     });
-    return this.request<CompareResponse>(`/compare${qs}`);
+    return this.request<SearchResponse>(`/search${qs}`);
+  }
+
+  /**
+   * Get the schema of available fields and their valid band values.
+   */
+  async schema(): Promise<APIResponse<SchemaResponse>> {
+    return this.request<SchemaResponse>("/schema/fields");
   }
 
   /**
@@ -236,122 +306,6 @@ export class TickerDB {
     return this.request<WatchlistChangesResponse>(
       `/watchlist/changes${qs ? `?${qs}` : ""}`,
     );
-  }
-
-  /**
-   * List all available assets.
-   */
-  async assets(): Promise<APIResponse<AssetsResponse>> {
-    return this.request<AssetsResponse>("/assets");
-  }
-
-  /**
-   * List all valid sector values with asset counts.
-   * Use these values with the `sector` parameter on scan endpoints.
-   */
-  async sectors(): Promise<APIResponse<SectorsResponse>> {
-    return this.request<SectorsResponse>("/list/sectors");
-  }
-
-  /**
-   * Search for historical band transition events for a ticker.
-   *
-   * @param options - Query parameters including required ticker and field.
-   */
-  async events(
-    options: EventsOptions,
-  ): Promise<APIResponse<EventsResponse>> {
-    const qs = buildQueryString({
-      ticker: options.ticker,
-      field: options.field,
-      timeframe: options.timeframe,
-      band: options.band,
-      limit: options.limit,
-      before: options.before,
-      after: options.after,
-      context_ticker: options.context_ticker,
-      context_field: options.context_field,
-      context_band: options.context_band,
-    });
-    return this.request<EventsResponse>(`/events${qs}`);
-  }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Scan methods (exposed via this.scan.*)
-  // ────────────────────────────────────────────────────────────────────────────
-
-  private async scanOversold(
-    options?: OversoldOptions,
-  ): Promise<APIResponse<OversoldResponse>> {
-    const qs = buildQueryString({
-      timeframe: options?.timeframe,
-      asset_class: options?.asset_class,
-      sector: options?.sector,
-      min_severity: options?.min_severity,
-      sort_by: options?.sort_by,
-      limit: options?.limit,
-      date: options?.date,
-    });
-    return this.request<OversoldResponse>(`/scan/oversold${qs}`);
-  }
-
-  private async scanBreakouts(
-    options?: BreakoutsOptions,
-  ): Promise<APIResponse<BreakoutsResponse>> {
-    const qs = buildQueryString({
-      timeframe: options?.timeframe,
-      asset_class: options?.asset_class,
-      sector: options?.sector,
-      direction: options?.direction,
-      sort_by: options?.sort_by,
-      limit: options?.limit,
-      date: options?.date,
-    });
-    return this.request<BreakoutsResponse>(`/scan/breakouts${qs}`);
-  }
-
-  private async scanUnusualVolume(
-    options?: UnusualVolumeOptions,
-  ): Promise<APIResponse<UnusualVolumeResponse>> {
-    const qs = buildQueryString({
-      timeframe: options?.timeframe,
-      asset_class: options?.asset_class,
-      sector: options?.sector,
-      min_ratio_band: options?.min_ratio_band,
-      sort_by: options?.sort_by,
-      limit: options?.limit,
-      date: options?.date,
-    });
-    return this.request<UnusualVolumeResponse>(`/scan/unusual-volume${qs}`);
-  }
-
-  private async scanValuation(
-    options?: ValuationOptions,
-  ): Promise<APIResponse<ValuationResponse>> {
-    const qs = buildQueryString({
-      timeframe: options?.timeframe,
-      sector: options?.sector,
-      direction: options?.direction,
-      min_severity: options?.min_severity,
-      sort_by: options?.sort_by,
-      limit: options?.limit,
-      date: options?.date,
-    });
-    return this.request<ValuationResponse>(`/scan/valuation${qs}`);
-  }
-
-  private async scanInsiderActivity(
-    options?: InsiderActivityOptions,
-  ): Promise<APIResponse<InsiderActivityResponse>> {
-    const qs = buildQueryString({
-      timeframe: options?.timeframe,
-      sector: options?.sector,
-      direction: options?.direction,
-      sort_by: options?.sort_by,
-      limit: options?.limit,
-      date: options?.date,
-    });
-    return this.request<InsiderActivityResponse>(`/scan/insider-activity${qs}`);
   }
 
   // ────────────────────────────────────────────────────────────────────────────
