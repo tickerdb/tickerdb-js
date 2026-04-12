@@ -175,14 +175,31 @@ export interface SchemaResponse {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// POST /v1/watchlist
+// GET /v1/watchlist
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface WatchlistOptions {
-  timeframe?: Timeframe;
+  /** Optional historical snapshot date (YYYY-MM-DD). Omit for the latest saved-watchlist snapshot. */
+  date?: string;
 }
 
 export type WatchlistResponse = Record<string, unknown>;
+
+// POST /v1/watchlist
+
+export interface AddToWatchlistResponse {
+  added: string[];
+  already_saved: string[];
+  watchlist_count: number;
+  watchlist_limit: number;
+}
+
+// DELETE /v1/watchlist
+
+export interface RemoveFromWatchlistResponse {
+  removed: string[];
+  watchlist_count: number;
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/watchlist/changes

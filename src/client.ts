@@ -1,9 +1,11 @@
 import { TickerDBError } from "./errors.js";
 import type {
+  AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
   CreateWebhookOptions,
   DeleteWebhookOptions,
+  RemoveFromWatchlistResponse,
   RateLimitInfo,
   SchemaResponse,
   SearchFilter,
@@ -272,20 +274,43 @@ export class TickerDB {
   }
 
   /**
-   * Get watchlist data for a set of tickers.
+   * Get the saved watchlist snapshot for the authenticated account.
    *
-   * @param tickers - Array of ticker symbols.
-   * @param options - Optional parameters.
+   * @param options - Optional parameters (currently only historical `date`).
    */
   async watchlist(
-    tickers: string[],
     options?: WatchlistOptions,
   ): Promise<APIResponse<WatchlistResponse>> {
-    return this.request<WatchlistResponse>("/watchlist", {
+    const qs = buildQueryString({
+      date: options?.date,
+    });
+    return this.request<WatchlistResponse>(`/watchlist${qs}`);
+  }
+
+  /**
+   * Add ticker symbols to the saved watchlist.
+   */
+  async addToWatchlist(
+    tickers: string[],
+  ): Promise<APIResponse<AddToWatchlistResponse>> {
+    return this.request<AddToWatchlistResponse>("/watchlist", {
       method: "POST",
       body: JSON.stringify({
-        tickers,
-        timeframe: options?.timeframe,
+        tickers: tickers.map((ticker) => ticker.toUpperCase()),
+      }),
+    });
+  }
+
+  /**
+   * Remove ticker symbols from the saved watchlist.
+   */
+  async removeFromWatchlist(
+    tickers: string[],
+  ): Promise<APIResponse<RemoveFromWatchlistResponse>> {
+    return this.request<RemoveFromWatchlistResponse>("/watchlist", {
+      method: "DELETE",
+      body: JSON.stringify({
+        tickers: tickers.map((ticker) => ticker.toUpperCase()),
       }),
     });
   }

@@ -80,14 +80,26 @@ const { data } = await client.summary("AAPL", {
 
 ### Watchlist
 
-Get watchlist data for a set of tickers (POST request).
+Get the saved watchlist snapshot for the authenticated account.
 
 ```typescript
-const { data } = await client.watchlist(["AAPL", "MSFT", "TSLA"]);
+const { data } = await client.watchlist();
 
-const { data: weekly } = await client.watchlist(["AAPL", "MSFT"], {
-  timeframe: "weekly",
+const { data: historical } = await client.watchlist({
+  date: "2025-01-15",
 });
+```
+
+Add tickers to the saved watchlist:
+
+```typescript
+const { data } = await client.addToWatchlist(["AAPL", "MSFT", "TSLA"]);
+```
+
+Remove tickers from the saved watchlist:
+
+```typescript
+const { data } = await client.removeFromWatchlist(["TSLA"]);
 ```
 
 ### Watchlist Changes

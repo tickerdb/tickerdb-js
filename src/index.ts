@@ -2,6 +2,7 @@ export { TickerDB, SearchBuilder } from "./client.js";
 export type { WebhookMethods } from "./client.js";
 export { TickerDBError } from "./errors.js";
 export type {
+  AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
   BandMeta,
@@ -18,6 +19,7 @@ export type {
   TickerContext,
   Timeframe,
   UpdateWebhookOptions,
+  RemoveFromWatchlistResponse,
   WatchlistChangeEntry,
   WatchlistChangesOptions,
   WatchlistChangesResponse,
