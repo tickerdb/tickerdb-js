@@ -6,6 +6,7 @@ import type {
   DeleteWebhookOptions,
   RateLimitInfo,
   SchemaResponse,
+  SearchFilter,
   SearchOptions,
   SearchResponse,
   SummaryOptions,
@@ -29,7 +30,7 @@ const DEFAULT_BASE_URL = "https://api.tickerdb.com/v1";
 // ──────────────────────────────────────────────────────────────────────────────
 
 export class SearchBuilder {
-  private filters: Array<{ field: string; op: string; value: unknown }> = [];
+  private filters: SearchFilter[] = [];
   private _fields?: string[];
   private _sortBy?: string;
   private _sortDirection?: "asc" | "desc";

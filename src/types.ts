@@ -16,6 +16,9 @@ export interface TickerDBConfig {
 export type Timeframe = "daily" | "weekly";
 
 export type Stability = "fresh" | "holding" | "established" | "volatile";
+export type SearchOperator = "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte";
+export type SchemaOperator = SearchOperator;
+export type SchemaFieldType = "text" | "integer" | "numeric" | "boolean" | "bigint";
 
 /** Full band metadata returned for Plus/Pro tiers on summary and watchlist endpoints. */
 export interface BandMeta {
@@ -103,9 +106,24 @@ export type SummaryResponse = Record<string, unknown>;
 // GET /v1/search
 // ──────────────────────────────────────────────────────────────────────────────
 
+export interface SearchFilter {
+  /**
+   * Canonical field name from /v1/schema/fields.
+   * The API still accepts some legacy aliases for compatibility, but new clients
+   * should prefer the flat snake_case schema field names.
+   */
+  field: string;
+  op: SearchOperator;
+  value: unknown;
+}
+
 export interface SearchOptions {
-  /** JSON-encoded filter object for search criteria. */
-  filters?: Array<{ field: string; op: string; value: unknown }> | Record<string, unknown>;
+  /**
+   * Search filters as an array of { field, op, value } objects.
+   * Example:
+   * [{ field: "momentum_rsi_zone", op: "eq", value: "oversold" }]
+   */
+  filters?: SearchFilter[];
   /** "daily" or "weekly". Defaults to "daily". */
   timeframe?: Timeframe;
   /** Max results to return. */
@@ -127,13 +145,34 @@ export interface SearchOptions {
   sort_direction?: 'asc' | 'desc';
 }
 
-export type SearchResponse = Record<string, unknown>;
+export interface SearchResponse {
+  timeframe: Timeframe;
+  /** Resolved snapshot date for the query, or null if no snapshot was available. */
+  date: string | null;
+  fields: string[];
+  filter_count: number;
+  result_count: number;
+  results: Array<Record<string, unknown>>;
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/schema/fields
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type SchemaResponse = Record<string, unknown>;
+export interface SchemaField {
+  name: string;
+  type: SchemaFieldType;
+  category: string;
+  values?: string[];
+  description: string;
+}
+
+export interface SchemaResponse {
+  total_fields: number;
+  categories: string[];
+  operators: SchemaOperator[];
+  fields: SchemaField[];
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // POST /v1/watchlist
