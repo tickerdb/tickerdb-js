@@ -216,6 +216,7 @@ export class TickerDB {
       date: options?.date,
       start: options?.start,
       end: options?.end,
+      fields: options?.fields ? JSON.stringify(options.fields) : undefined,
       sample: options?.sample,
       field: options?.field,
       band: options?.band,

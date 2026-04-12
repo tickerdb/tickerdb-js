@@ -80,6 +80,12 @@ export interface SummaryOptions {
   start?: string;
   /** Range end date (YYYY-MM-DD). Used with start for historical series. */
   end?: string;
+  /**
+   * Optional summary fields to return. Pass sections like `trend`
+   * or dotted paths like `trend.direction`, `momentum.rsi_zone`,
+   * `fundamentals.valuation_zone`, or `levels`.
+   */
+  fields?: string[];
   /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
   sample?: 'even';
   /** Band field name for event queries (e.g. "rsi_zone", "trend_direction"). */
