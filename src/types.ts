@@ -80,11 +80,13 @@ export interface SummaryOptions {
   start?: string;
   /** Range end date (YYYY-MM-DD). Used with start for historical series. */
   end?: string;
+  /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
+  sample?: 'even';
   /** Band field name for event queries (e.g. "rsi_zone", "trend_direction"). */
   field?: string;
   /** Filter to a specific band value for event queries (e.g. "deep_oversold"). */
   band?: string;
-  /** Max event results (1-100). Only used with field param. */
+  /** For event mode: max results (1-100). For sample=even date ranges: requested sampled rows, capped by plan. */
   limit?: number;
   /** Return events before this date (YYYY-MM-DD). */
   before?: string;

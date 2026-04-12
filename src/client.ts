@@ -216,6 +216,7 @@ export class TickerDB {
       date: options?.date,
       start: options?.start,
       end: options?.end,
+      sample: options?.sample,
       field: options?.field,
       band: options?.band,
       limit: options?.limit,
