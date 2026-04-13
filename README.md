@@ -25,6 +25,7 @@ const client = new TickerDB({ apiKey: "YOUR_API_KEY" });
 // Get a summary for a single ticker
 const { data, rateLimit } = await client.summary("AAPL");
 console.log(data);
+console.log(data.as_of_date); // "2026-04-11"
 console.log(`Requests remaining: ${rateLimit.requestsRemaining}`);
 ```
 
@@ -73,7 +74,7 @@ Query event occurrences for a specific band field.
 
 ```typescript
 const { data } = await client.summary("AAPL", {
-  field: "rsi_zone",
+  field: "momentum_rsi_zone",
   band: "deep_oversold",
 });
 ```
@@ -84,6 +85,7 @@ Get the saved watchlist snapshot for the authenticated account.
 
 ```typescript
 const { data } = await client.watchlist();
+console.log(data.as_of_date); // shared snapshot date when available
 
 const { data: historical } = await client.watchlist({
   date: "2025-01-15",
@@ -117,6 +119,8 @@ const { data: weekly } = await client.watchlistChanges({
 ### Band Stability Metadata
 
 Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
+
+Summary and watchlist responses also include `as_of_date` so you can see exactly which market session the snapshot represents.
 
 ```typescript
 const { data } = await client.summary("AAPL");
