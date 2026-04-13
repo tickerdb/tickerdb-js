@@ -77,6 +77,11 @@ const { data } = await client.summary("AAPL", {
   field: "momentum_rsi_zone",
   band: "deep_oversold",
 });
+
+const { data: extremes } = await client.summary("AAPL", {
+  field: "extremes_condition",
+  band: "deep_oversold",
+});
 ```
 
 ### Watchlist
