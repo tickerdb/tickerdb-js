@@ -1,8 +1,8 @@
-# tickerdb
+# TickerDB - Financial context for agents.
 
 [![npm version](https://img.shields.io/npm/v/tickerdb.svg)](https://www.npmjs.com/package/tickerdb)
 
-Official Node.js/TypeScript SDK for the [TickerDB](https://tickerdb.com) financial data API.
+Pre-computed market data that improves agent reasoning, reduces token usage, and replaces custom data pipelines.
 
 - Zero dependencies -- uses native `fetch` (Node.js 18+)
 - First-class TypeScript support with full type definitions

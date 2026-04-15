@@ -1,7 +1,7 @@
 {
   "name": "tickerdb",
-  "version": "0.1.13",
-  "description": "Official Node.js/TypeScript SDK for the TickerDB financial data API",
+  "version": "0.1.15",
+  "description": "Pre-computed market data that improves agent reasoning, reduces token usage, and replaces custom data pipelines.",
   "author": "TickerDB",
   "license": "MIT",
   "homepage": "https://tickerdb.com",
