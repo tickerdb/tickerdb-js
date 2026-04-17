@@ -57,7 +57,19 @@ const { data: weekly } = await client.summary("AAPL", {
 });
 ```
 
-Summary payloads are intentionally forward-compatible. Current snapshots include top-level freshness like `as_of_date`, richer `volume` fields such as `price_direction_on_volume`, level metadata such as `support_level.status_meta`, Pro `sector_context` fields like `agreement` and `overbought_count`, and stock-only nested `fundamentals.insider_activity` when available.
+Summary payloads are intentionally forward-compatible. Current snapshots include top-level freshness like `as_of_date`, richer `volume` fields such as `price_direction_on_volume`, optional level metadata such as `support_level.status_meta` when requested, Pro `sector_context` fields like `agreement` and `overbought_count`, and stock-only nested `fundamentals.insider_activity` when available.
+
+Summary stays band-first by default, so sibling `_meta` / `status_meta` stability objects are omitted unless you opt in:
+
+```typescript
+const { data } = await client.summary("AAPL", {
+  meta: true,
+});
+
+const { data: narrow } = await client.summary("AAPL", {
+  fields: ["trend.direction", "trend.direction_meta"],
+});
+```
 
 ### Summary with Date Range
 
@@ -125,12 +137,14 @@ const { data: weekly } = await client.watchlistChanges({
 
 ### Band Stability Metadata
 
-Every band field (trend direction, momentum zone, etc.) now includes a sibling `_meta` object with stability context. This tells you how long a state has been held, how often it has flipped recently, and an overall stability label.
+Summary omits sibling `_meta` objects by default so the primary band label stays front-and-center. Set `meta: true` to include full paid-tier stability metadata across the response, or request just the few `*_meta` fields you need via `fields`.
 
 Summary and watchlist responses also include `as_of_date` so you can see exactly which market session the snapshot represents.
 
 ```typescript
-const { data } = await client.summary("AAPL");
+const { data } = await client.summary("AAPL", {
+  meta: true,
+});
 
 // The band value itself
 console.log(data.trend.direction);          // "uptrend"
@@ -145,7 +159,7 @@ import type { Stability, BandMeta } from "tickerdb";
 
 `Stability` is one of `"fresh"`, `"holding"`, `"established"`, or `"volatile"`. `BandMeta` contains the full metadata object. Stability metadata is available on Plus and Pro tiers only.
 
-Stability context also appears in **Watchlist Changes**, which include stability fields for each changed band.
+Stability context also appears in **Watchlist**, which still includes paid-tier `_meta` objects by default, and in **Watchlist Changes**, which include stability fields inline for each changed band.
 
 ### Query Builder
 

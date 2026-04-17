@@ -20,7 +20,7 @@ export type SearchOperator = "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte";
 export type SchemaOperator = SearchOperator;
 export type SchemaFieldType = "text" | "integer" | "numeric" | "boolean" | "bigint";
 
-/** Full band metadata returned for Plus/Pro tiers on summary and watchlist endpoints. */
+/** Full band metadata available on paid tiers when requested on summary or included in watchlist responses. */
 export interface BandMeta {
   timeframe: "daily" | "weekly";
   periods_in_current_state: number;
@@ -86,6 +86,12 @@ export interface SummaryOptions {
    * `fundamentals.valuation_zone`, or `levels`.
    */
   fields?: string[];
+  /**
+   * Snapshot and history modes only. Set true to include sibling `_meta`
+   * and `status_meta` stability objects. Explicit `*_meta` field paths in
+   * `fields` still work without this flag.
+   */
+  meta?: boolean;
   /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
   sample?: 'even';
   /** Band field name for event queries (e.g. "rsi_zone", "trend_direction"). */

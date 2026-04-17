@@ -204,6 +204,9 @@ export class TickerDB {
    * - **Historical series**: Pass `start`/`end` for a date range of snapshots.
    * - **Events**: Pass `field` (and optionally `band`) for band transition history with aftermath.
    *
+   * Snapshot and history responses stay band-first by default. Set `meta: true`
+   * to include sibling `_meta` / `status_meta` stability objects across the payload.
+   *
    * @param ticker - The asset ticker symbol (e.g. "AAPL").
    * @param options - Optional query parameters controlling mode and filters.
    */
@@ -217,6 +220,7 @@ export class TickerDB {
       start: options?.start,
       end: options?.end,
       fields: options?.fields ? JSON.stringify(options.fields) : undefined,
+      meta: options?.meta === undefined ? undefined : String(options.meta),
       sample: options?.sample,
       field: options?.field,
       band: options?.band,
