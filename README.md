@@ -1,8 +1,8 @@
-# TickerDB - Financial context for agents.
+# TickerDB - Market context for agents.
 
 [![npm version](https://img.shields.io/npm/v/tickerdb.svg)](https://www.npmjs.com/package/tickerdb)
 
-Pre-computed market data that improves agent reasoning, reduces token usage, and replaces custom data pipelines.
+Pre-computed EOD market context that improves reasoning, reduces token usage, and replaces data pipelines.
 
 - Zero dependencies -- uses native `fetch` (Node.js 18+)
 - First-class TypeScript support with full type definitions
@@ -20,7 +20,7 @@ npm install tickerdb
 ```typescript
 import { TickerDB } from "tickerdb";
 
-const client = new TickerDB({ apiKey: "YOUR_API_KEY" });
+const client = new TickerDB({ apiKey: "tdb_your_api_key" });
 
 // Get a summary for a single ticker
 const { data, rateLimit } = await client.summary("AAPL");
@@ -37,7 +37,7 @@ console.log(`Requests remaining: ${rateLimit.requestsRemaining}`);
 import { TickerDB } from "tickerdb";
 
 const client = new TickerDB({
-  apiKey: "YOUR_API_KEY",
+  apiKey: "tdb_your_api_key",
   // Optional: override the default base URL
   // baseUrl: "https://api.tickerdb.com/v1",
 });
@@ -168,7 +168,7 @@ The SDK throws a `TickerDBError` for all non-2xx responses. The error includes t
 ```typescript
 import { TickerDB, TickerDBError } from "tickerdb";
 
-const client = new TickerDB({ apiKey: "YOUR_API_KEY" });
+const client = new TickerDB({ apiKey: "tdb_your_api_key" });
 
 try {
   const { data } = await client.summary("AAPL");

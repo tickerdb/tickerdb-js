@@ -1,7 +1,7 @@
 {
   "name": "tickerdb",
-  "version": "0.1.15",
-  "description": "Pre-computed market data that improves agent reasoning, reduces token usage, and replaces custom data pipelines.",
+  "version": "0.1.16",
+  "description": "Pre-computed market data that improves agent reasoning, reduces token usage, and replaces data pipelines.",
   "author": "TickerDB",
   "license": "MIT",
   "homepage": "https://tickerdb.com",
