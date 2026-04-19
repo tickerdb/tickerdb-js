@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/tickerdb.svg)](https://www.npmjs.com/package/tickerdb)
 
-Pre-computed EOD market context that improves reasoning, reduces token usage, and replaces data pipelines.
+Connect your agent to pre-computed market context that improves reasoning and reduces token usage.
 
 - Zero dependencies -- uses native `fetch` (Node.js 18+)
 - First-class TypeScript support with full type definitions
