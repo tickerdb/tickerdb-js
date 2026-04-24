@@ -119,6 +119,22 @@ const { data: maEvents } = await client.summary("BTCUSD", {
 
 For MA distance event fields such as `trend_distance_ma50`, grouped `band: "above"` and `band: "below"` aliases are supported in addition to granular values like `"slightly_above"`.
 
+Use `stats: true` when you want aggregate outcomes instead of raw event rows:
+
+```typescript
+const { data } = await client.summary("SOLUSD", {
+  field: "trend_distance_ma20",
+  band: "above",
+  context_ticker: "QQQ",
+  context_field: "trend_distance_ma20",
+  context_band: "above",
+  before: "2025-07-01",
+  stats: true,
+});
+
+console.log(data.stats);
+```
+
 ### Watchlist
 
 Get the saved watchlist snapshot for the authenticated account.

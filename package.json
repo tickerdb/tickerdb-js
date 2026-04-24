@@ -1,6 +1,6 @@
 {
   "name": "tickerdb",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "Connect your agent to pre-computed market context that improves reasoning and reduces token usage.",
   "author": "TickerDB",
   "license": "MIT",

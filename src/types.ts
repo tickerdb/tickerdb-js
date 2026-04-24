@@ -98,12 +98,14 @@ export interface SummaryOptions {
   field?: string;
   /** Filter to a specific band value for event queries (e.g. "deep_oversold"). MA distance fields also support grouped "above" and "below" aliases. */
   band?: string;
-  /** For event mode: max results (1-100). For sample=even date ranges: requested sampled rows, capped by plan. */
+  /** For event mode: max results (1-50), returned newest-first by default. For sample=even date ranges: requested sampled rows, capped by plan. */
   limit?: number;
   /** Return events before this date (YYYY-MM-DD). */
   before?: string;
   /** Return events after this date (YYYY-MM-DD). */
   after?: string;
+  /** Event mode only. Set true to return aggregate stats instead of raw event rows. */
+  stats?: boolean;
   /** Cross-asset correlation: a second ticker (e.g. "SPY"). Requires context_field and context_band. Plus/Pro only. */
   context_ticker?: string;
   /** Band field to check on the context ticker (e.g. "trend_direction" or "trend_distance_ma50"). */

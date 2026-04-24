@@ -227,6 +227,7 @@ export class TickerDB {
       limit: options?.limit,
       before: options?.before,
       after: options?.after,
+      stats: options?.stats === undefined ? undefined : String(options.stats),
       context_ticker: options?.context_ticker,
       context_field: options?.context_field,
       context_band: options?.context_band,
