@@ -240,9 +240,9 @@ export class TickerDB {
    * @example
    * ```ts
    * const results = await client.query()
-   *   .eq('momentum_rsi_zone', 'oversold')
+   *   .eq('trend_distance_ma50', 'slightly_above')
    *   .eq('sector', 'Technology')
-   *   .select('ticker', 'sector', 'momentum_rsi_zone')
+   *   .select('ticker', 'sector', 'trend_distance_ma50')
    *   .sort('extremes_condition_percentile', 'asc')
    *   .limit(10)
    *   .execute();

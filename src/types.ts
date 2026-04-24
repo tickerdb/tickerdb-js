@@ -94,9 +94,9 @@ export interface SummaryOptions {
   meta?: boolean;
   /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
   sample?: 'even';
-  /** Band field name for event queries (e.g. "rsi_zone", "trend_direction"). */
+  /** Band field name for event queries (e.g. "momentum_rsi_zone", "trend_direction", "trend_distance_ma50"). */
   field?: string;
-  /** Filter to a specific band value for event queries (e.g. "deep_oversold"). */
+  /** Filter to a specific band value for event queries (e.g. "deep_oversold"). MA distance fields also support grouped "above" and "below" aliases. */
   band?: string;
   /** For event mode: max results (1-100). For sample=even date ranges: requested sampled rows, capped by plan. */
   limit?: number;
@@ -106,7 +106,7 @@ export interface SummaryOptions {
   after?: string;
   /** Cross-asset correlation: a second ticker (e.g. "SPY"). Requires context_field and context_band. Plus/Pro only. */
   context_ticker?: string;
-  /** Band field to check on the context ticker (e.g. "trend_direction"). */
+  /** Band field to check on the context ticker (e.g. "trend_direction" or "trend_distance_ma50"). */
   context_field?: string;
   /** Only return events where the context ticker was in this band (e.g. "downtrend"). */
   context_band?: string;
