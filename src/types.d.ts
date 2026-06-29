@@ -63,7 +63,7 @@ export interface SummaryOptions {
     meta?: boolean;
     /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
     sample?: 'even';
-    /** Band field name for event queries (e.g. "momentum_rsi_zone", "trend_direction", "trend_distance_ma50"). */
+    /** Band field name for event queries (e.g. "momentum_rsi_zone", "trend_direction", "trend_ma_crossover_event", "trend_distance_ma50"). */
     field?: string;
     /** Filter to a specific band value for event queries (e.g. "deep_oversold"). MA distance fields also support grouped "above" and "below" aliases. */
     band?: string;
@@ -77,7 +77,7 @@ export interface SummaryOptions {
   stats?: boolean;
   /** Cross-asset correlation: a second ticker (e.g. "SPY"). Requires context_field and context_band. Plus/Pro only. */
   context_ticker?: string;
-    /** Band field to check on the context ticker (e.g. "trend_direction" or "trend_distance_ma50"). */
+    /** Band field to check on the context ticker (e.g. "trend_direction", "trend_ma_crossover_event", or "trend_distance_ma50"). */
     context_field?: string;
     /** Only return events where the context ticker was in this band (e.g. "downtrend"). */
     context_band?: string;
@@ -112,6 +112,7 @@ export interface SearchOptions {
      * Columns to return in each result. Pass an array of field names
      * (e.g. `["ticker", "sector", "momentum_rsi_zone"]`) or `["*"]` for all 120+ fields.
      * Default if omitted: ticker, asset_class, sector, performance, trend_direction,
+     * trend_ma_slope_band, trend_ma_compression_band, trend_ma_crossover_event,
      * momentum_rsi_zone, extremes_condition, extremes_condition_rarity, volatility_regime,
      * volume_ratio_band, fundamentals_valuation_zone, range_position.
      * `ticker` is always included.

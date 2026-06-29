@@ -79,7 +79,15 @@ const { data: maSnapshot } = await client.summary("AAPL", {
 });
 
 console.log(maSnapshot.trend.distance_from_ma_band.ma_50);
-// "slightly_above"
+// "proximity_above"
+```
+
+Semantic MA fields are available in the same `trend` object:
+
+```typescript
+const { data: maSignals } = await client.summary("AAPL", {
+  fields: ["trend.ma_slope_band", "trend.ma_compression_band", "trend.ma_crossover_event"],
+});
 ```
 
 ### Summary with Date Range
@@ -117,7 +125,7 @@ const { data: maEvents } = await client.summary("BTCUSD", {
 });
 ```
 
-For MA distance event fields such as `trend_distance_ma50`, grouped `band: "above"` and `band: "below"` aliases are supported in addition to granular values like `"slightly_above"`.
+For MA distance event fields such as `trend_distance_ma50`, grouped `band: "above"` and `band: "below"` aliases are supported in addition to granular values like `"proximity_above"`.
 
 Use `stats: true` when you want aggregate outcomes instead of raw event rows:
 
@@ -205,7 +213,7 @@ The SDK includes a fluent query builder for searching assets by categorical stat
 ```typescript
 const { data } = await client.query()
   .select('ticker', 'sector', 'trend_distance_ma50', 'momentum_rsi_zone')
-  .eq('trend_distance_ma50', 'slightly_above')
+  .eq('trend_distance_ma50', 'proximity_above')
   .eq('sector', 'Technology')
   .sort('extremes_condition_percentile', 'asc')
   .limit(10)
