@@ -94,7 +94,7 @@ export interface SummaryOptions {
   meta?: boolean;
   /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
   sample?: 'even';
-  /** Band field name for event queries (e.g. "momentum_rsi_zone", "trend_direction", "trend_ma_crossover_event", "trend_distance_ma50"). */
+  /** Band field name for event queries (e.g. "momentum_rsi_zone", "pattern_bull_flag", "trend_direction", "trend_ma_crossover_event", "trend_distance_ma50"). */
   field?: string;
   /** Filter to a specific band value for event queries (e.g. "deep_oversold"). MA distance fields also support grouped "above" and "below" aliases. */
   band?: string;
@@ -152,7 +152,8 @@ export interface SearchOptions {
    * Default if omitted: ticker, asset_class, sector, performance, trend_direction,
    * trend_ma20_slope, trend_ma_compression_band, trend_ma_crossover_event,
    * momentum_rsi_zone, extremes_condition, extremes_condition_rarity, volatility_regime,
-   * volume_ratio_band, fundamentals_valuation_zone, range_position.
+   * volume_ratio_band, pattern_bull_flag, pattern_bear_flag,
+   * fundamentals_valuation_zone, range_position.
    * Request ma8 through ma200 for raw MA values.
    * Request trend_ma8_slope through trend_ma200_slope for the full MA slope set.
    * `ticker` is always included.
