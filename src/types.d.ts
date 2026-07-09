@@ -52,7 +52,7 @@ export interface SummaryOptions {
     /**
      * Optional summary fields to return. Pass sections like `trend`
      * or dotted paths like `trend.direction`, `momentum.rsi_zone`,
-     * `fundamentals.valuation_zone`, or `levels`.
+     * `fundamentals.valuation_zone`, `fundamentals.free_cash_flow`, or `levels`.
      */
     fields?: string[];
     /**
@@ -63,7 +63,7 @@ export interface SummaryOptions {
     meta?: boolean;
     /** Date range mode only. Use "even" to evenly sample snapshots across the full start/end range. */
     sample?: 'even';
-    /** Band field name for event queries (e.g. "momentum_rsi_zone", "pattern_bull_flag", "trend_direction", "trend_ma_crossover_event", "trend_distance_ma50"). */
+    /** Band field name for event queries (e.g. "momentum_rsi_zone", "pattern_bull_flag", "pattern_ascending_triangle", "trend_direction", "trend_ma_crossover_event", "trend_distance_ma50", "fundamentals_free_cash_flow"). */
     field?: string;
     /** Filter to a specific band value for event queries (e.g. "deep_oversold"). MA distance fields also support grouped "above" and "below" aliases. */
     band?: string;
@@ -114,8 +114,11 @@ export interface SearchOptions {
      * Default if omitted: ticker, asset_class, sector, performance, trend_direction,
      * trend_ma20_slope, trend_ma_compression_band, trend_ma_crossover_event,
      * momentum_rsi_zone, extremes_condition, extremes_condition_rarity, volatility_regime,
-     * volume_ratio_band, pattern_bull_flag, pattern_bear_flag,
+     * volume_ratio_band, pattern_bull_flag, pattern_bear_flag, pattern_ascending_triangle,
+     * pattern_descending_triangle, pattern_symmetrical_triangle, pattern_rising_wedge,
+     * pattern_falling_wedge,
      * fundamentals_valuation_zone, range_position.
+     * Request fundamentals_free_cash_flow explicitly for the stock-only free cash flow burn/surplus band.
      * Request ma8 through ma200 for raw MA values.
      * Request trend_ma8_slope through trend_ma200_slope for the full MA slope set.
      * `ticker` is always included.

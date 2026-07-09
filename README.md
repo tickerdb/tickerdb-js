@@ -57,7 +57,7 @@ const { data: weekly } = await client.summary("AAPL", {
 });
 ```
 
-Summary payloads are intentionally forward-compatible. Current snapshots include top-level freshness like `as_of_date`, same-candle `ohlcv.open/high/low/close/volume`, richer `volume` fields such as `price_direction_on_volume`, raw support/resistance prices such as `support_level.level_price`, optional level metadata such as `support_level.status_meta` when requested, Pro `sector_context` fields like `agreement` and `overbought_count`, and stock-only nested `fundamentals.insider_activity` when available.
+Summary payloads are intentionally forward-compatible. Current snapshots include top-level freshness like `as_of_date`, same-candle `ohlcv.open/high/low/close/volume`, richer `volume` fields such as `price_direction_on_volume`, raw support/resistance prices such as `support_level.level_price`, optional level metadata such as `support_level.status_meta` when requested, Pro `sector_context` fields like `agreement` and `overbought_count`, and stock-only fundamentals such as `fundamentals.free_cash_flow` and nested `fundamentals.insider_activity` when available.
 
 Summary stays band-first by default, so sibling `_meta` / `status_meta` stability objects are omitted unless you opt in:
 
@@ -67,7 +67,7 @@ const { data } = await client.summary("AAPL", {
 });
 
 const { data: narrow } = await client.summary("AAPL", {
-  fields: ["trend.direction", "trend.direction_meta"],
+  fields: ["trend.direction", "trend.direction_meta", "fundamentals.free_cash_flow"],
 });
 ```
 
@@ -131,6 +131,11 @@ const { data: maEvents } = await client.summary("BTCUSD", {
   context_ticker: "SPY",
   context_field: "trend_distance_ma50",
   context_band: "below",
+});
+
+const { data: fcfEvents } = await client.summary("AAPL", {
+  field: "fundamentals_free_cash_flow",
+  band: "moderate_surplus",
 });
 ```
 
@@ -221,8 +226,9 @@ The SDK includes a fluent query builder for searching assets by categorical stat
 
 ```typescript
 const { data } = await client.query()
-  .select('ticker', 'sector', 'trend_distance_ma50', 'momentum_rsi_zone')
+  .select('ticker', 'sector', 'trend_distance_ma50', 'momentum_rsi_zone', 'fundamentals_free_cash_flow')
   .eq('trend_distance_ma50', 'proximity_above')
+  .eq('fundamentals_free_cash_flow', 'moderate_surplus')
   .eq('sector', 'Technology')
   .sort('extremes_condition_percentile', 'asc')
   .limit(10)
