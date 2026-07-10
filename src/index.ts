@@ -1,5 +1,5 @@
 export { TickerDB, SearchBuilder } from "./client.js";
-export type { WebhookMethods } from "./client.js";
+export type { ScreenerMethods, WebhookMethods } from "./client.js";
 export { TickerDBError } from "./errors.js";
 export type {
   AccountLimits,
@@ -9,13 +9,26 @@ export type {
   APIErrorBody,
   APIResponse,
   BandMeta,
+  CreateScreenerOptions,
   CreateWebhookOptions,
+  DeleteScreenerOptions,
+  DeleteScreenerResponse,
   DeleteWebhookOptions,
   OhlcvBar,
   OhlcvOptions,
   OhlcvResponse,
   RateLimitInfo,
+  SchemaField,
   SchemaResponse,
+  Screener,
+  ScreenerFilter,
+  ScreenerFilterKind,
+  ScreenerFilterOp,
+  ScreenerKind,
+  ScreenerListResponse,
+  ScreenerMutationResponse,
+  ScreenerSort,
+  ScreenerTimeframe,
   SearchOptions,
   SearchResponse,
   Stability,
@@ -24,6 +37,7 @@ export type {
   TickerDBConfig,
   TickerContext,
   Timeframe,
+  UpdateScreenerOptions,
   UpdateWebhookOptions,
   RemoveFromWatchlistResponse,
   WatchlistChangeEntry,

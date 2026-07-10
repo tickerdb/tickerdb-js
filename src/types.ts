@@ -428,3 +428,93 @@ export interface WebhookDeliveriesResponse {
   limit: number;
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Screeners CRUD (GET/POST/PUT/DELETE /v1/screeners)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type ScreenerTimeframe = Timeframe;
+/** "default" for built-in screeners, "custom" for user-saved ones. */
+export type ScreenerKind = "default" | "custom";
+export type ScreenerFilterOp =
+  | "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte" | "exists" | "changed";
+/** "value" filters match the current snapshot; "change" filters match a band transition. */
+export type ScreenerFilterKind = "value" | "change";
+
+export interface ScreenerFilter {
+  /** Defaults to "value". Use "change" (with `from`/`to`) for transition filters. */
+  type?: ScreenerFilterKind;
+  field: string;
+  op: ScreenerFilterOp;
+  /** For value filters. Arrays are used with the "in" operator. */
+  value?: string | number | boolean | Array<string | number | boolean>;
+  /** Change filters: the prior band value. */
+  from?: string | number | boolean;
+  /** Change filters: the new band value. */
+  to?: string | number | boolean;
+  /** Change filters: lookback window in periods. */
+  periods?: number;
+}
+
+export interface ScreenerSort {
+  field: string;
+  direction: "asc" | "desc";
+}
+
+export interface Screener {
+  id: string;
+  kind: ScreenerKind;
+  name: string;
+  description: string;
+  timeframe: ScreenerTimeframe;
+  filters: ScreenerFilter[];
+  return_fields: string[];
+  sort: ScreenerSort | null;
+  /** True for built-in default screeners, which cannot be edited. */
+  readonly?: boolean;
+}
+
+export interface ScreenerListResponse {
+  defaults: Screener[];
+  saved: Screener[];
+  /** Convenience: defaults followed by saved screeners. */
+  screeners: Screener[];
+  /** The searchable field catalog, same shape as GET /v1/schema/fields. */
+  fields: SchemaField[];
+}
+
+export interface CreateScreenerOptions {
+  filters: ScreenerFilter[];
+  name?: string;
+  timeframe?: ScreenerTimeframe;
+  sort?: ScreenerSort | null;
+  /** Result cap for the saved screener (1-50). Defaults to 30. */
+  limit_count?: number;
+}
+
+export interface UpdateScreenerOptions {
+  id: string;
+  filters?: ScreenerFilter[];
+  name?: string;
+  timeframe?: ScreenerTimeframe;
+  sort?: ScreenerSort | null;
+  limit_count?: number;
+}
+
+export interface DeleteScreenerOptions {
+  id: string;
+  /** "custom" (default) deletes a saved screener; "default" hides a built-in one. */
+  kind?: ScreenerKind;
+}
+
+export interface ScreenerMutationResponse {
+  screener: Screener;
+}
+
+export interface DeleteScreenerResponse {
+  ok: boolean;
+  deleted?: boolean;
+  hidden?: boolean;
+  id: string;
+  kind: ScreenerKind;
+}
+
