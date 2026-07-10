@@ -221,6 +221,8 @@ export interface SearchOptions {
   filters?: SearchFilter[];
   /** "daily" or "weekly". Defaults to "daily". */
   timeframe?: Timeframe;
+  /** Optional historical snapshot date (YYYY-MM-DD). Omit for the latest snapshot. */
+  date?: string;
   /** Max results to return. */
   limit?: number;
   /** Pagination offset. */

@@ -40,6 +40,7 @@ export class SearchBuilder {
   private _sortBy?: string;
   private _sortDirection?: "asc" | "desc";
   private _timeframe?: "daily" | "weekly";
+  private _date?: string;
   private _limit?: number;
   private _offset?: number;
   private client: TickerDB;
@@ -109,6 +110,11 @@ export class SearchBuilder {
     return this;
   }
 
+  date(date: string): this {
+    this._date = date;
+    return this;
+  }
+
   async execute(): Promise<APIResponse<SearchResponse>> {
     return this.client.search({
       filters: this.filters,
@@ -116,6 +122,7 @@ export class SearchBuilder {
       sort_by: this._sortBy,
       sort_direction: this._sortDirection,
       timeframe: this._timeframe,
+      date: this._date,
       limit: this._limit,
       offset: this._offset,
     });
@@ -291,6 +298,7 @@ export class TickerDB {
     const qs = buildQueryString({
       filters: options?.filters ? JSON.stringify(options.filters) : undefined,
       timeframe: options?.timeframe,
+      date: options?.date,
       limit: options?.limit,
       offset: options?.offset,
       fields: options?.fields ? JSON.stringify(options.fields) : undefined,
