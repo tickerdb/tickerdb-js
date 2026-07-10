@@ -157,6 +157,50 @@ const { data } = await client.summary("SOLUSD", {
 console.log(data.stats);
 ```
 
+### OHLCV
+
+Get raw daily OHLCV price bars for a single ticker. Bars are split/dividend-adjusted for equities and ETFs, and unadjusted for crypto. History depth is capped by your plan, and results are cursor-paginated.
+
+```typescript
+const { data } = await client.ohlcv("AAPL");
+
+console.log(data.bars[0]);
+// { date: "2026-04-11", open: 172.3, high: 174.1, low: 171.8, close: 173.5, volume: 51234000 }
+```
+
+Control the range, order, and page size, and follow `next_cursor` to paginate:
+
+```typescript
+const { data } = await client.ohlcv("AAPL", {
+  start: "2025-01-01",
+  end: "2025-03-31",
+  order: "asc",
+  limit: 500,
+});
+
+if (data.has_more) {
+  const { data: next } = await client.ohlcv("AAPL", {
+    cursor: data.next_cursor!,
+    order: "asc",
+  });
+}
+```
+
+Each request costs `ceil(rows / 100)` credits (minimum 1).
+
+### Account
+
+Get the authenticated account's tier, plan limits, and current usage. This is a read-only metadata endpoint and does not consume request quota.
+
+```typescript
+const { data } = await client.account();
+
+console.log(data.tier);                          // "pro"
+console.log(data.limits.monthly_requests);       // plan request cap
+console.log(data.usage.monthly_requests_remaining);
+console.log(data.usage.credit_balance);
+```
+
 ### Watchlist
 
 Get the saved watchlist snapshot for the authenticated account.
@@ -233,6 +277,49 @@ const { data } = await client.query()
   .sort('extremes_condition_percentile', 'asc')
   .limit(10)
   .execute()
+```
+
+Pass `.date('YYYY-MM-DD')` (or `date` in `search()`) to query a historical snapshot instead of the latest one:
+
+```typescript
+const { data } = await client.query()
+  .select('ticker', 'momentum_rsi_zone')
+  .eq('momentum_rsi_zone', 'oversold')
+  .date('2025-01-15')
+  .execute()
+```
+
+### Webhooks
+
+Manage webhook subscriptions for the authenticated account. Valid event types are `"watchlist.changes"` and `"data.ready"`.
+
+```typescript
+// List
+const { data } = await client.webhooks.list();
+
+// Create — returns the signing secret once, on creation
+const { data: created } = await client.webhooks.create({
+  url: "https://example.com/hooks/tickerdb",
+  events: { "watchlist.changes": true },
+});
+
+// Update
+await client.webhooks.update({ id: created.id, active: false });
+
+// Delete
+await client.webhooks.delete({ id: created.id });
+```
+
+Inspect delivery history for debugging, optionally filtered to a single webhook:
+
+```typescript
+const { data } = await client.webhooks.deliveries({
+  webhook_id: created.id,
+  limit: 50,
+});
+
+console.log(data.deliveries[0]);
+// { id, webhook_id, event_type, status, http_status, attempt_count, ... }
 ```
 
 ## Error Handling
