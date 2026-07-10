@@ -34,7 +34,11 @@ export type {
   Webhook,
   WebhookCreated,
   WebhookDeleteResponse,
+  WebhookDeliveriesOptions,
+  WebhookDeliveriesResponse,
+  WebhookDelivery,
   WebhookEvents,
+  WebhookEventType,
   WebhookListResponse,
   WebhookUpdateResponse,
 } from "./types.js";

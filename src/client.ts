@@ -24,6 +24,8 @@ import type {
   WatchlistResponse,
   WebhookCreated,
   WebhookDeleteResponse,
+  WebhookDeliveriesOptions,
+  WebhookDeliveriesResponse,
   WebhookListResponse,
   WebhookUpdateResponse,
 } from "./types.js";
@@ -138,6 +140,9 @@ export interface WebhookMethods {
   create(options: CreateWebhookOptions): Promise<APIResponse<WebhookCreated>>;
   update(options: UpdateWebhookOptions): Promise<APIResponse<WebhookUpdateResponse>>;
   delete(options: DeleteWebhookOptions): Promise<APIResponse<WebhookDeleteResponse>>;
+  deliveries(
+    options?: WebhookDeliveriesOptions,
+  ): Promise<APIResponse<WebhookDeliveriesResponse>>;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -198,6 +203,7 @@ export class TickerDB {
       create: this.webhookCreate.bind(this),
       update: this.webhookUpdate.bind(this),
       delete: this.webhookDelete.bind(this),
+      deliveries: this.webhookDeliveries.bind(this),
     };
   }
 
@@ -428,6 +434,16 @@ export class TickerDB {
         id: options.id,
       }),
     });
+  }
+
+  private async webhookDeliveries(
+    options?: WebhookDeliveriesOptions,
+  ): Promise<APIResponse<WebhookDeliveriesResponse>> {
+    const qs = buildQueryString({
+      webhook_id: options?.webhook_id,
+      limit: options?.limit,
+    });
+    return this.request<WebhookDeliveriesResponse>(`/webhooks/deliveries${qs}`);
   }
 
   // ────────────────────────────────────────────────────────────────────────────

@@ -340,7 +340,14 @@ export interface WatchlistChangesResponse {
 // Webhook CRUD
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type WebhookEvents = Record<string, boolean>;
+/** Known webhook event types. New types may be added server-side over time. */
+export type WebhookEventType = "watchlist.changes" | "data.ready";
+
+/** Map of event type -> enabled. Known types autocomplete; arbitrary keys stay
+ *  allowed so the SDK remains forward-compatible with new server event types. */
+export type WebhookEvents =
+  & Partial<Record<WebhookEventType, boolean>>
+  & Record<string, boolean>;
 
 export interface CreateWebhookOptions {
   url: string;
@@ -390,5 +397,34 @@ export interface WebhookUpdateResponse {
 export interface WebhookDeleteResponse {
   deleted: string;
   webhook_count: number;
+}
+
+// GET /v1/webhooks/deliveries
+
+export interface WebhookDeliveriesOptions {
+  /** Filter to a single webhook's deliveries. */
+  webhook_id?: string;
+  /** Max deliveries to return (1-200). Defaults to 50. */
+  limit?: number;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  webhook_id: string;
+  event_type: string;
+  timeframe: string;
+  run_date: string;
+  status: string;
+  attempt_count: number | null;
+  http_status: number | null;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface WebhookDeliveriesResponse {
+  deliveries: WebhookDelivery[];
+  count: number;
+  limit: number;
 }
 
