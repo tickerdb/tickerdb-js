@@ -188,6 +188,14 @@ if (data.has_more) {
 
 Each request costs `ceil(rows / 100)` credits (minimum 1).
 
+To stream every bar across a range without managing the cursor yourself, use `ohlcvBars()`, which follows `next_cursor` automatically:
+
+```typescript
+for await (const bar of client.ohlcvBars("AAPL", { start: "2024-01-01", order: "asc" })) {
+  console.log(bar.date, bar.close);
+}
+```
+
 ### Account
 
 Get the authenticated account's tier, plan limits, and current usage. This is a read-only metadata endpoint and does not consume request quota.
@@ -365,6 +373,34 @@ await client.screeners.update({ id, name: "Renamed screener" });
 
 await client.screeners.delete({ id });                     // remove a saved screener
 await client.screeners.delete({ id: "oversold", kind: "default" }); // hide a default
+```
+
+### Team
+
+Manage teams for the authenticated account. Listing teams works on any tier; creating teams and inviting members requires the Business plan.
+
+```typescript
+// List teams you belong to, plus your own pending invites
+const { data } = await client.team.list();
+console.log(data.teams[0]?.members);
+
+// Create a team (Business tier)
+const { data: created } = await client.team.create({ name: "Research desk" });
+const teamId = created.team.id;
+
+// Invite, promote, and manage members
+await client.team.invite({ team_id: teamId, email: "analyst@example.com", role: "member" });
+await client.team.promote({ team_id: teamId, user_id: "usr_123", role: "admin" });
+await client.team.removeMember({ team_id: teamId, user_id: "usr_123" });
+
+// Invites
+await client.team.resendInvite({ team_id: teamId, invite_id: "inv_123" });
+await client.team.cancelInvite({ team_id: teamId, invite_id: "inv_123" });
+
+// Team administration
+await client.team.rename({ team_id: teamId, name: "New name" });
+await client.team.setSeats({ team_id: teamId, total_seats: 8 });
+await client.team.leave({ team_id: teamId });
 ```
 
 ## Error Handling

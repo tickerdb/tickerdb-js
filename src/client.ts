@@ -17,6 +17,7 @@ import type {
   InviteTeamMemberResponse,
   LeaveTeamOptions,
   LeaveTeamResponse,
+  OhlcvBar,
   OhlcvOptions,
   OhlcvResponse,
   PromoteTeamMemberOptions,
@@ -364,6 +365,37 @@ export class TickerDB {
       limit: options?.limit,
     });
     return this.request<OhlcvResponse>(`/ohlcv/${encodeURIComponent(ticker)}${qs}`);
+  }
+
+  /**
+   * Iterate every OHLCV bar for a ticker across pages, transparently following
+   * `next_cursor` until the range is exhausted. Each page still costs credits.
+   *
+   * @example
+   * ```ts
+   * for await (const bar of client.ohlcvBars("AAPL", { start: "2024-01-01", order: "asc" })) {
+   *   console.log(bar.date, bar.close);
+   * }
+   * ```
+   *
+   * @param ticker - The asset ticker symbol (e.g. "AAPL").
+   * @param options - Same options as `ohlcv()`; `cursor` sets the starting page.
+   */
+  async *ohlcvBars(
+    ticker: string,
+    options?: OhlcvOptions,
+  ): AsyncGenerator<OhlcvBar, void, unknown> {
+    let cursor = options?.cursor;
+    while (true) {
+      const { data } = await this.ohlcv(ticker, { ...options, cursor });
+      for (const bar of data.bars) {
+        yield bar;
+      }
+      if (!data.has_more || !data.next_cursor) {
+        return;
+      }
+      cursor = data.next_cursor;
+    }
   }
 
   /**
