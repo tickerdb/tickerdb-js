@@ -5,6 +5,8 @@ import type {
   APIResponse,
   CreateWebhookOptions,
   DeleteWebhookOptions,
+  OhlcvOptions,
+  OhlcvResponse,
   RemoveFromWatchlistResponse,
   RateLimitInfo,
   SchemaResponse,
@@ -233,6 +235,30 @@ export class TickerDB {
       context_band: options?.context_band,
     });
     return this.request<SummaryResponse>(`/summary/${encodeURIComponent(ticker)}${qs}`);
+  }
+
+  /**
+   * Get raw daily OHLCV price bars for a single ticker.
+   *
+   * Bars are split/dividend-adjusted for equities and ETFs, unadjusted for
+   * crypto. History depth is capped by your plan; results are cursor-paginated
+   * via `next_cursor`. Cost is `ceil(rows / 100)` credits (minimum 1).
+   *
+   * @param ticker - The asset ticker symbol (e.g. "AAPL").
+   * @param options - Range, order, limit, and pagination cursor.
+   */
+  async ohlcv(
+    ticker: string,
+    options?: OhlcvOptions,
+  ): Promise<APIResponse<OhlcvResponse>> {
+    const qs = buildQueryString({
+      start: options?.start,
+      end: options?.end,
+      cursor: options?.cursor,
+      order: options?.order,
+      limit: options?.limit,
+    });
+    return this.request<OhlcvResponse>(`/ohlcv/${encodeURIComponent(ticker)}${qs}`);
   }
 
   /**

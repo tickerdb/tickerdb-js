@@ -119,6 +119,52 @@ export interface SummaryOptions {
 export type SummaryResponse = Record<string, unknown>;
 
 // ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/ohlcv/:ticker
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface OhlcvOptions {
+  /** Range start date (YYYY-MM-DD). Clamped to your plan's history window. */
+  start?: string;
+  /** Range end date (YYYY-MM-DD). */
+  end?: string;
+  /** Pagination cursor (YYYY-MM-DD) — pass the previous response's `next_cursor`. */
+  cursor?: string;
+  /** Bar order. Defaults to "desc" (newest first). */
+  order?: "asc" | "desc";
+  /** Max bars to return (1-1000). Defaults to 100. Cost is ceil(rows / 100) credits. */
+  limit?: number;
+}
+
+export interface OhlcvBar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface OhlcvResponse {
+  ticker: string;
+  asset_class: string;
+  currency: string | null;
+  timeframe: "daily";
+  data_status: "eod";
+  /** "split_and_dividend_adjusted" for equities/ETFs, "none" for crypto. */
+  adjustment: "split_and_dividend_adjusted" | "none";
+  order: "asc" | "desc";
+  start: string;
+  end: string | null;
+  row_count: number;
+  has_more: boolean;
+  /** Feed back into `cursor` to fetch the next page, or null when exhausted. */
+  next_cursor: string | null;
+  bars: OhlcvBar[];
+  plan_history_days: number;
+  plan: string;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/search
 // ──────────────────────────────────────────────────────────────────────────────
 
