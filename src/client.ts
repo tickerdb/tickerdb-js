@@ -1,5 +1,6 @@
 import { TickerDBError } from "./errors.js";
 import type {
+  AccountResponse,
   AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
@@ -304,6 +305,15 @@ export class TickerDB {
    */
   async schema(): Promise<APIResponse<SchemaResponse>> {
     return this.request<SchemaResponse>("/schema/fields");
+  }
+
+  /**
+   * Get the authenticated account's tier, plan limits, and current usage.
+   *
+   * This is a read-only metadata endpoint and does not consume request quota.
+   */
+  async account(): Promise<APIResponse<AccountResponse>> {
+    return this.request<AccountResponse>("/account");
   }
 
   /**

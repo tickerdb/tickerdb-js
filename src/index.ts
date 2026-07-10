@@ -2,6 +2,9 @@ export { TickerDB, SearchBuilder } from "./client.js";
 export type { WebhookMethods } from "./client.js";
 export { TickerDBError } from "./errors.js";
 export type {
+  AccountLimits,
+  AccountResponse,
+  AccountUsage,
   AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,

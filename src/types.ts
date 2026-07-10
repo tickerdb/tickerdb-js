@@ -165,6 +165,39 @@ export interface OhlcvResponse {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/account
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface AccountLimits {
+  monthly_requests: number;
+  overage_enabled: boolean;
+  watchlist_limit: number;
+  search_results: number;
+  webhook_urls: number;
+  history_days: number;
+}
+
+export interface AccountUsage {
+  monthly_requests_used: number;
+  monthly_requests_remaining: number;
+  credit_balance: number;
+}
+
+export interface AccountResponse {
+  /** Base tier slug (e.g. "free", "plus", "pro", "business"). */
+  tier: string;
+  /** Full tier identifier, including seat variants where applicable. */
+  tier_full: string;
+  email: string;
+  limits: AccountLimits;
+  usage: AccountUsage;
+  /** Pending scheduled tier change (e.g. a downgrade), or null. */
+  scheduled_tier: string | null;
+  /** ISO timestamp for when the scheduled change takes effect, or null. */
+  scheduled_change_at: string | null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/search
 // ──────────────────────────────────────────────────────────────────────────────
 
