@@ -518,3 +518,158 @@ export interface DeleteScreenerResponse {
   kind: ScreenerKind;
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Team management (GET /v1/team, POST /v1/team actions) — Business tier
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type TeamRole = "owner" | "admin" | "member";
+/** Roles that can be assigned to a member (owner is fixed to the team creator). */
+export type AssignableTeamRole = "admin" | "member";
+
+export interface TeamMember {
+  user_id: string;
+  email: string;
+  name: string | null;
+  role: TeamRole;
+  joined_at: string | null;
+}
+
+export interface TeamPendingInvite {
+  id: string;
+  email: string;
+  role: AssignableTeamRole;
+  expires_at: string | null;
+  created_at: string | null;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  max_seats: number;
+  extra_seats: number;
+  seats_used: number;
+  seats_available: number;
+  your_role: TeamRole;
+  members: TeamMember[];
+  pending_invites: TeamPendingInvite[];
+}
+
+export interface MyTeamInvite {
+  id: string;
+  team_id: string;
+  team_name: string;
+  role: AssignableTeamRole;
+  inviter_email: string;
+  expires_at: string | null;
+}
+
+export interface TeamListResponse {
+  teams: Team[];
+  my_pending_invites: MyTeamInvite[];
+}
+
+export interface CreateTeamOptions {
+  name: string;
+}
+
+export interface CreateTeamResponse {
+  team: { id: string; name: string; max_seats: number; your_role: "owner" };
+  message: string;
+}
+
+export interface InviteTeamMemberOptions {
+  team_id: string;
+  email: string;
+  /** Defaults to "member". */
+  role?: AssignableTeamRole;
+}
+
+export interface InviteTeamMemberResponse {
+  invite: {
+    id: string;
+    email: string;
+    role: AssignableTeamRole;
+    expires_at: string;
+    team_id: string;
+  };
+  message: string;
+}
+
+export interface RemoveTeamMemberOptions {
+  team_id: string;
+  user_id: string;
+}
+
+export interface RemoveTeamMemberResponse {
+  removed: string;
+  message: string;
+}
+
+export interface CancelTeamInviteOptions {
+  team_id: string;
+  invite_id: string;
+}
+
+export interface CancelTeamInviteResponse {
+  cancelled: string;
+  message: string;
+}
+
+export interface ResendTeamInviteOptions {
+  team_id: string;
+  invite_id: string;
+}
+
+export interface ResendTeamInviteResponse {
+  resent: string;
+  expires_at: string;
+  message: string;
+}
+
+export interface PromoteTeamMemberOptions {
+  team_id: string;
+  user_id: string;
+  role: AssignableTeamRole;
+}
+
+export interface PromoteTeamMemberResponse {
+  user_id: string;
+  previous_role: TeamRole;
+  new_role: AssignableTeamRole;
+  message: string;
+}
+
+export interface LeaveTeamOptions {
+  team_id: string;
+}
+
+export interface LeaveTeamResponse {
+  message: string;
+}
+
+export interface RenameTeamOptions {
+  team_id: string;
+  name: string;
+}
+
+export interface RenameTeamResponse {
+  team_id: string;
+  name: string;
+  message: string;
+}
+
+export interface SetTeamSeatsOptions {
+  team_id: string;
+  /** Desired total capacity (included + extra seats). */
+  total_seats: number;
+}
+
+export interface SetTeamSeatsResponse {
+  team_id: string;
+  max_seats: number;
+  extra_seats: number;
+  seats_used: number;
+  seat_price_monthly: number;
+  message: string;
+}
+

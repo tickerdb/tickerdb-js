@@ -4,14 +4,30 @@ import type {
   AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
+  CancelTeamInviteOptions,
+  CancelTeamInviteResponse,
   CreateScreenerOptions,
+  CreateTeamOptions,
+  CreateTeamResponse,
   CreateWebhookOptions,
   DeleteScreenerOptions,
   DeleteScreenerResponse,
   DeleteWebhookOptions,
+  InviteTeamMemberOptions,
+  InviteTeamMemberResponse,
+  LeaveTeamOptions,
+  LeaveTeamResponse,
   OhlcvOptions,
   OhlcvResponse,
+  PromoteTeamMemberOptions,
+  PromoteTeamMemberResponse,
   RemoveFromWatchlistResponse,
+  RemoveTeamMemberOptions,
+  RemoveTeamMemberResponse,
+  RenameTeamOptions,
+  RenameTeamResponse,
+  ResendTeamInviteOptions,
+  ResendTeamInviteResponse,
   RateLimitInfo,
   SchemaResponse,
   ScreenerListResponse,
@@ -19,8 +35,11 @@ import type {
   SearchFilter,
   SearchOptions,
   SearchResponse,
+  SetTeamSeatsOptions,
+  SetTeamSeatsResponse,
   SummaryOptions,
   SummaryResponse,
+  TeamListResponse,
   TickerDBConfig,
   UpdateScreenerOptions,
   UpdateWebhookOptions,
@@ -163,6 +182,33 @@ export interface ScreenerMethods {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Team namespace interface
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface TeamMethods {
+  /** List all teams you belong to, plus your own pending invites. */
+  list(): Promise<APIResponse<TeamListResponse>>;
+  /** Create a team (Business tier; one owned team per user). */
+  create(options: CreateTeamOptions): Promise<APIResponse<CreateTeamResponse>>;
+  /** Invite a member by email. */
+  invite(options: InviteTeamMemberOptions): Promise<APIResponse<InviteTeamMemberResponse>>;
+  /** Remove a member from the team. */
+  removeMember(options: RemoveTeamMemberOptions): Promise<APIResponse<RemoveTeamMemberResponse>>;
+  /** Cancel a pending invite. */
+  cancelInvite(options: CancelTeamInviteOptions): Promise<APIResponse<CancelTeamInviteResponse>>;
+  /** Resend a pending invite (refreshes its expiry). */
+  resendInvite(options: ResendTeamInviteOptions): Promise<APIResponse<ResendTeamInviteResponse>>;
+  /** Change a member's role between "admin" and "member". */
+  promote(options: PromoteTeamMemberOptions): Promise<APIResponse<PromoteTeamMemberResponse>>;
+  /** Leave a team you are a member of (owners cannot leave). */
+  leave(options: LeaveTeamOptions): Promise<APIResponse<LeaveTeamResponse>>;
+  /** Rename a team (owner only). */
+  rename(options: RenameTeamOptions): Promise<APIResponse<RenameTeamResponse>>;
+  /** Set total seat capacity (owner only; adjusts billing). */
+  setSeats(options: SetTeamSeatsOptions): Promise<APIResponse<SetTeamSeatsResponse>>;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Helper utilities
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -209,6 +255,9 @@ export class TickerDB {
   /** Namespace for saved-screener endpoints. */
   public readonly screeners: ScreenerMethods;
 
+  /** Namespace for team management endpoints. */
+  public readonly team: TeamMethods;
+
   constructor(config: TickerDBConfig) {
     if (!config.apiKey) {
       throw new Error("An apiKey is required to create a TickerDB client.");
@@ -232,6 +281,20 @@ export class TickerDB {
       create: this.screenerCreate.bind(this),
       update: this.screenerUpdate.bind(this),
       delete: this.screenerDelete.bind(this),
+    };
+
+    // Bind team methods so they retain the correct `this` context.
+    this.team = {
+      list: this.teamList.bind(this),
+      create: (options) => this.teamAction<CreateTeamResponse>("create", options),
+      invite: (options) => this.teamAction<InviteTeamMemberResponse>("invite", options),
+      removeMember: (options) => this.teamAction<RemoveTeamMemberResponse>("remove_member", options),
+      cancelInvite: (options) => this.teamAction<CancelTeamInviteResponse>("cancel_invite", options),
+      resendInvite: (options) => this.teamAction<ResendTeamInviteResponse>("resend_invite", options),
+      promote: (options) => this.teamAction<PromoteTeamMemberResponse>("promote", options),
+      leave: (options) => this.teamAction<LeaveTeamResponse>("leave", options),
+      rename: (options) => this.teamAction<RenameTeamResponse>("rename", options),
+      setSeats: (options) => this.teamAction<SetTeamSeatsResponse>("set_seats", options),
     };
   }
 
@@ -522,6 +585,25 @@ export class TickerDB {
     });
     return this.request<DeleteScreenerResponse>(`/screeners${qs}`, {
       method: "DELETE",
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Team methods (exposed via this.team.*)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private async teamList(): Promise<APIResponse<TeamListResponse>> {
+    return this.request<TeamListResponse>("/team");
+  }
+
+  /** POST /team dispatches on an `action` discriminator in the body. */
+  private async teamAction<T>(
+    action: string,
+    options: object,
+  ): Promise<APIResponse<T>> {
+    return this.request<T>("/team", {
+      method: "POST",
+      body: JSON.stringify({ action, ...options }),
     });
   }
 
