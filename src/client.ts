@@ -249,6 +249,7 @@ function buildQueryString(params: Record<string, unknown>): string {
 export class TickerDB {
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  private readonly timeout?: number;
 
   /** Namespace for webhook endpoints. */
   public readonly webhooks: WebhookMethods;
@@ -266,6 +267,7 @@ export class TickerDB {
 
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+    this.timeout = config.timeout;
 
     // Bind webhook methods so they retain the correct `this` context.
     this.webhooks = {
@@ -658,40 +660,66 @@ export class TickerDB {
       headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(url, {
-      method: init?.method ?? "GET",
-      headers,
-      body: init?.body,
-    });
+    // When a timeout is configured, abort the request (and body read) once it
+    // elapses. The timer is cleared in `finally` so a fast response never leaks
+    // a pending timer.
+    const controller =
+      this.timeout && this.timeout > 0 ? new AbortController() : undefined;
+    const timer = controller
+      ? setTimeout(() => controller.abort(), this.timeout)
+      : undefined;
 
-    const rateLimit = parseRateLimitHeaders(response.headers);
+    try {
+      const response = await fetch(url, {
+        method: init?.method ?? "GET",
+        headers,
+        body: init?.body,
+        signal: controller?.signal,
+      });
 
-    if (!response.ok) {
-      let errorBody: APIErrorBody | undefined;
-      try {
-        errorBody = (await response.json()) as APIErrorBody;
-      } catch {
-        // Non-JSON error body — fall through to generic error.
+      const rateLimit = parseRateLimitHeaders(response.headers);
+
+      if (!response.ok) {
+        let errorBody: APIErrorBody | undefined;
+        try {
+          errorBody = (await response.json()) as APIErrorBody;
+        } catch {
+          // Non-JSON error body — fall through to generic error.
+        }
+
+        const errType = errorBody?.error?.type ?? "unknown_error";
+        const errMessage =
+          errorBody?.error?.message ?? `Request failed with status ${response.status}`;
+        const upgradeUrl = errorBody?.error?.upgrade_url;
+        const resetAt =
+          errorBody?.error?.reset ?? rateLimit.requestReset ?? undefined;
+
+        throw new TickerDBError(
+          response.status,
+          errType,
+          errMessage,
+          upgradeUrl,
+          resetAt,
+        );
       }
 
-      const errType = errorBody?.error?.type ?? "unknown_error";
-      const errMessage =
-        errorBody?.error?.message ?? `Request failed with status ${response.status}`;
-      const upgradeUrl = errorBody?.error?.upgrade_url;
-      const resetAt =
-        errorBody?.error?.reset ?? rateLimit.requestReset ?? undefined;
+      const data = (await response.json()) as T;
 
-      throw new TickerDBError(
-        response.status,
-        errType,
-        errMessage,
-        upgradeUrl,
-        resetAt,
-      );
+      return { data, rateLimit };
+    } catch (err) {
+      // Distinguish an abort we triggered (timeout) from other failures.
+      if (controller?.signal.aborted) {
+        throw new TickerDBError(
+          408,
+          "timeout",
+          `Request timed out after ${this.timeout}ms.`,
+        );
+      }
+      throw err;
+    } finally {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
     }
-
-    const data = (await response.json()) as T;
-
-    return { data, rateLimit };
   }
 }

@@ -40,7 +40,23 @@ const client = new TickerDB({
   apiKey: "tdb_your_api_key",
   // Optional: override the default base URL
   // baseUrl: "https://api.tickerdb.com/v1",
+  // Optional: abort requests that take longer than N milliseconds
+  // timeout: 30000,
 });
+```
+
+When `timeout` is set, a request that doesn't complete in time is aborted and rejects with a `TickerDBError` of type `"timeout"` (status `408`):
+
+```typescript
+const client = new TickerDB({ apiKey: "tdb_your_api_key", timeout: 30000 });
+
+try {
+  const { data } = await client.summary("AAPL");
+} catch (error) {
+  if (error instanceof TickerDBError && error.type === "timeout") {
+    console.error("Request timed out");
+  }
+}
 ```
 
 ### Summary

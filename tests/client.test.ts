@@ -119,6 +119,22 @@ describe("request layer", () => {
     expect(err.status).toBe(502);
     expect(err.type).toBe("unknown_error");
   });
+
+  it("throws a timeout TickerDBError when a request exceeds the configured timeout", async () => {
+    // fetch never resolves on its own; it rejects only when the signal aborts.
+    vi.stubGlobal("fetch", vi.fn((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () =>
+          reject(new DOMException("aborted", "AbortError")),
+        );
+      }),
+    ));
+    const c = new TickerDB({ apiKey: "k", baseUrl: "https://api.example.com/v1", timeout: 20 });
+    const err = await c.account().catch((e) => e);
+    expect(err).toBeInstanceOf(TickerDBError);
+    expect(err.status).toBe(408);
+    expect(err.type).toBe("timeout");
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

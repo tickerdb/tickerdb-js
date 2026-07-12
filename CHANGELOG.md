@@ -9,6 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - `client.ohlcvBars(ticker, options)` — async generator that streams every
   OHLCV bar across pages, transparently following `next_cursor`.
+- `timeout` client option — aborts a request that exceeds the given number of
+  milliseconds and rejects with a `TickerDBError` of type `"timeout"` (408).
 - Test suite (vitest) covering the request layer and every public method.
 
 ### Removed

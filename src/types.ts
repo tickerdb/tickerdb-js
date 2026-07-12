@@ -7,6 +7,12 @@ export interface TickerDBConfig {
   apiKey: string;
   /** Override the default base URL (https://api.tickerdb.com/v1). */
   baseUrl?: string;
+  /**
+   * Per-request timeout in milliseconds. When set, a request that does not
+   * complete in time is aborted and rejects with a `TickerDBError` of type
+   * "timeout" (status 408). Omit or set to 0 to disable (the default).
+   */
+  timeout?: number;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
