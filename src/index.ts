@@ -34,6 +34,7 @@ export type {
   RemoveTeamMemberResponse,
   RenameTeamOptions,
   RenameTeamResponse,
+  RequestOptions,
   ResendTeamInviteOptions,
   ResendTeamInviteResponse,
   RateLimitInfo,

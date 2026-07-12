@@ -366,7 +366,10 @@ export class TickerDB {
       context_field: options?.context_field,
       context_band: options?.context_band,
     });
-    return this.request<SummaryResponse>(`/summary/${encodeURIComponent(ticker)}${qs}`);
+    return this.request<SummaryResponse>(
+      `/summary/${encodeURIComponent(ticker)}${qs}`,
+      { signal: options?.signal },
+    );
   }
 
   /**
@@ -390,7 +393,10 @@ export class TickerDB {
       order: options?.order,
       limit: options?.limit,
     });
-    return this.request<OhlcvResponse>(`/ohlcv/${encodeURIComponent(ticker)}${qs}`);
+    return this.request<OhlcvResponse>(
+      `/ohlcv/${encodeURIComponent(ticker)}${qs}`,
+      { signal: options?.signal },
+    );
   }
 
   /**
@@ -460,7 +466,7 @@ export class TickerDB {
       sort_by: options?.sort_by,
       sort_direction: options?.sort_direction,
     });
-    return this.request<SearchResponse>(`/search${qs}`);
+    return this.request<SearchResponse>(`/search${qs}`, { signal: options?.signal });
   }
 
   /**
@@ -678,7 +684,12 @@ export class TickerDB {
       try {
         return await this.attempt<T>(path, init);
       } catch (err) {
-        if (attempt >= this.maxRetries || !isRetryable(err)) {
+        // Never retry after a caller-initiated cancellation.
+        if (
+          init?.signal?.aborted ||
+          attempt >= this.maxRetries ||
+          !isRetryable(err)
+        ) {
           throw err;
         }
         await sleep(backoffDelay(attempt));
@@ -703,14 +714,24 @@ export class TickerDB {
       headers["Content-Type"] = "application/json";
     }
 
-    // When a timeout is configured, abort the request (and body read) once it
-    // elapses. The timer is cleared in `finally` so a fast response never leaks
-    // a pending timer.
-    const controller =
-      this.timeout && this.timeout > 0 ? new AbortController() : undefined;
-    const timer = controller
+    const userSignal = init?.signal ?? undefined;
+    // Honor a caller cancellation that happened before we even started.
+    if (userSignal?.aborted) {
+      throw userSignal.reason ?? new DOMException("This operation was aborted.", "AbortError");
+    }
+
+    // A controller is needed to enforce a timeout and/or forward the caller's
+    // signal. When neither is in play, fetch runs without one (unchanged path).
+    // The timer is cleared in `finally` so a fast response never leaks it.
+    const hasTimeout = this.timeout !== undefined && this.timeout > 0;
+    const controller = hasTimeout || userSignal ? new AbortController() : undefined;
+    const timer = hasTimeout && controller
       ? setTimeout(() => controller.abort(), this.timeout)
       : undefined;
+    const onUserAbort = () => controller?.abort(userSignal?.reason);
+    if (userSignal && controller) {
+      userSignal.addEventListener("abort", onUserAbort, { once: true });
+    }
 
     try {
       const response = await fetch(url, {
@@ -750,8 +771,13 @@ export class TickerDB {
 
       return { data, rateLimit };
     } catch (err) {
-      // Distinguish an abort we triggered (timeout) from other failures.
       if (controller?.signal.aborted) {
+        // Caller cancellation takes precedence — rethrow their reason so it
+        // stays a cancellation (and never gets retried).
+        if (userSignal?.aborted) {
+          throw userSignal.reason ?? err;
+        }
+        // Otherwise the abort was our own timeout firing.
         throw new TickerDBError(
           408,
           "timeout",
@@ -760,6 +786,9 @@ export class TickerDB {
       }
       throw err;
     } finally {
+      if (userSignal) {
+        userSignal.removeEventListener("abort", onUserAbort);
+      }
       if (timer !== undefined) {
         clearTimeout(timer);
       }

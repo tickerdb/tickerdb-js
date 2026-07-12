@@ -137,6 +137,33 @@ describe("request layer", () => {
     expect(err.type).toBe("unknown_error");
   });
 
+  it("rejects immediately when given an already-aborted signal", async () => {
+    const err = await client()
+      .summary("AAPL", { signal: AbortSignal.abort(new Error("cancelled")) })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe("cancelled");
+    expect(calls.length).toBe(0); // never hit the network
+  });
+
+  it("does not retry after a caller aborts", async () => {
+    const controller = new AbortController();
+    // fetch rejects only when the (composed) signal aborts.
+    vi.stubGlobal("fetch", vi.fn((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () =>
+          reject(new DOMException("aborted", "AbortError")),
+        );
+        controller.abort(new DOMException("user cancelled", "AbortError"));
+      }),
+    ));
+    const c = new TickerDB({ apiKey: "k", baseUrl: "https://api.example.com/v1", maxRetries: 3 });
+    const err = await c.summary("AAPL", { signal: controller.signal }).catch((e) => e);
+    expect(err).toBeInstanceOf(DOMException);
+    expect(err.name).toBe("AbortError");
+    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
+  });
+
   it("throws a timeout TickerDBError when a request exceeds the configured timeout", async () => {
     // fetch never resolves on its own; it rejects only when the signal aborts.
     vi.stubGlobal("fetch", vi.fn((_url: string, init: RequestInit) =>

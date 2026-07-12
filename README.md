@@ -66,6 +66,15 @@ Set `maxRetries` to automatically retry transient failures (HTTP 429, 408, and 5
 const client = new TickerDB({ apiKey: "tdb_your_api_key", maxRetries: 2 });
 ```
 
+Read methods (`summary`, `search`, `ohlcv`, `ohlcvBars`) accept a per-call `signal` to cancel a request. It composes with the client `timeout`, and a cancelled request is never retried:
+
+```typescript
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 100);
+
+const { data } = await client.summary("AAPL", { signal: controller.signal });
+```
+
 ### Summary
 
 Get a detailed summary for a single ticker.

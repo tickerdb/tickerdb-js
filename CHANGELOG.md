@@ -14,6 +14,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `maxRetries` client option — automatically retries transient failures (HTTP
   429, 408, and 5xx, plus network/timeout errors) with exponential backoff and
   jitter. Defaults to 0 (disabled).
+- Per-call `signal` (`AbortSignal`) on `summary`, `search`, `ohlcv`, and
+  `ohlcvBars` for request cancellation. Composes with `timeout`; cancelled
+  requests are never retried.
 - Continuous integration workflow (GitHub Actions) running build and tests on
   Node 20.x and 22.x.
 - Exported `VERSION` constant, also sent on every request via an

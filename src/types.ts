@@ -28,6 +28,16 @@ export interface TickerDBConfig {
 
 export type Timeframe = "daily" | "weekly";
 
+/** Per-request controls shared across endpoints that accept an options object. */
+export interface RequestOptions {
+  /**
+   * An `AbortSignal` to cancel this request. Composes with the client-level
+   * `timeout`; a cancelled request rejects with the signal's reason and is
+   * never retried.
+   */
+  signal?: AbortSignal;
+}
+
 export type Stability = "fresh" | "holding" | "established" | "volatile";
 export type SearchOperator = "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte";
 export type SchemaOperator = SearchOperator;
@@ -84,7 +94,7 @@ export interface APIErrorBody {
 // GET /v1/summary/:ticker
 // ──────────────────────────────────────────────────────────────────────────────
 
-export interface SummaryOptions {
+export interface SummaryOptions extends RequestOptions {
   /** "daily" or "weekly". Defaults to "daily". */
   timeframe?: Timeframe;
   /** ISO 8601 date string (YYYY-MM-DD) for point-in-time snapshot. */
@@ -135,7 +145,7 @@ export type SummaryResponse = Record<string, unknown>;
 // GET /v1/ohlcv/:ticker
 // ──────────────────────────────────────────────────────────────────────────────
 
-export interface OhlcvOptions {
+export interface OhlcvOptions extends RequestOptions {
   /** Range start date (YYYY-MM-DD). Clamped to your plan's history window. */
   start?: string;
   /** Range end date (YYYY-MM-DD). */
@@ -225,7 +235,7 @@ export interface SearchFilter {
   value: unknown;
 }
 
-export interface SearchOptions {
+export interface SearchOptions extends RequestOptions {
   /**
    * Search filters as an array of { field, op, value } objects.
    * Example:
