@@ -75,6 +75,15 @@ setTimeout(() => controller.abort(), 100);
 const { data } = await client.summary("AAPL", { signal: controller.signal });
 ```
 
+The fluent query builder exposes the same via `.signal()`:
+
+```typescript
+const { data } = await client.query()
+  .eq("momentum_rsi_zone", "oversold")
+  .signal(controller.signal)
+  .execute();
+```
+
 ### Summary
 
 Get a detailed summary for a single ticker.

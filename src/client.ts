@@ -70,6 +70,7 @@ export class SearchBuilder {
   private _sortDirection?: "asc" | "desc";
   private _timeframe?: "daily" | "weekly";
   private _date?: string;
+  private _signal?: AbortSignal;
   private _limit?: number;
   private _offset?: number;
   private client: TickerDB;
@@ -144,6 +145,11 @@ export class SearchBuilder {
     return this;
   }
 
+  signal(signal: AbortSignal): this {
+    this._signal = signal;
+    return this;
+  }
+
   async execute(): Promise<APIResponse<SearchResponse>> {
     return this.client.search({
       filters: this.filters,
@@ -152,6 +158,7 @@ export class SearchBuilder {
       sort_direction: this._sortDirection,
       timeframe: this._timeframe,
       date: this._date,
+      signal: this._signal,
       limit: this._limit,
       offset: this._offset,
     });

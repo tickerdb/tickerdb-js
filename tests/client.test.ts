@@ -312,6 +312,18 @@ describe("search", () => {
     expect(url.searchParams.get("date")).toBe("2025-01-15");
   });
 
+  it("query builder forwards an abort signal", async () => {
+    const err = await client()
+      .query()
+      .eq("sector", "Technology")
+      .signal(AbortSignal.abort(new Error("cancelled")))
+      .execute()
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe("cancelled");
+    expect(calls.length).toBe(0);
+  });
+
   it("query builder threads filters, select, sort and date", async () => {
     queue(jsonResponse({ results: [] }));
     await client()
