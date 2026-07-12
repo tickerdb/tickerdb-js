@@ -11,6 +11,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   OHLCV bar across pages, transparently following `next_cursor`.
 - `timeout` client option — aborts a request that exceeds the given number of
   milliseconds and rejects with a `TickerDBError` of type `"timeout"` (408).
+- `maxRetries` client option — automatically retries transient failures (HTTP
+  429, 408, and 5xx, plus network/timeout errors) with exponential backoff and
+  jitter. Defaults to 0 (disabled).
+- Continuous integration workflow (GitHub Actions) running build and tests on
+  Node 20.x and 22.x.
 - Test suite (vitest) covering the request layer and every public method.
 
 ### Removed

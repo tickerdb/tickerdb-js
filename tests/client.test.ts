@@ -138,6 +138,60 @@ describe("request layer", () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Retries
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe("retries", () => {
+  it("retries a transient 5xx and then succeeds", async () => {
+    vi.useFakeTimers();
+    try {
+      queue(
+        jsonResponse({ error: { type: "server_error", message: "boom" } }, { status: 503 }),
+        jsonResponse({ ok: true }),
+      );
+      const c = new TickerDB({ apiKey: "k", baseUrl: "https://api.example.com/v1", maxRetries: 2 });
+      const promise = c.account();
+      await vi.advanceTimersByTimeAsync(30_000);
+      const { data } = await promise;
+      expect(data).toEqual({ ok: true });
+      expect(calls.length).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives up after maxRetries and throws the last error", async () => {
+    vi.useFakeTimers();
+    try {
+      queue(
+        jsonResponse({ error: { type: "server_error", message: "boom" } }, { status: 503 }),
+        jsonResponse({ error: { type: "server_error", message: "boom" } }, { status: 503 }),
+        jsonResponse({ error: { type: "server_error", message: "boom" } }, { status: 503 }),
+      );
+      const c = new TickerDB({ apiKey: "k", baseUrl: "https://api.example.com/v1", maxRetries: 2 });
+      const promise = c.account();
+      const settled = promise.catch((e) => e);
+      await vi.advanceTimersByTimeAsync(30_000);
+      const err = await settled;
+      expect(err).toBeInstanceOf(TickerDBError);
+      expect(err.status).toBe(503);
+      expect(calls.length).toBe(3); // initial + 2 retries
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry a non-retryable 4xx", async () => {
+    queue(jsonResponse({ error: { type: "invalid_parameter", message: "bad" } }, { status: 400 }));
+    const c = new TickerDB({ apiKey: "k", baseUrl: "https://api.example.com/v1", maxRetries: 3 });
+    const err = await c.account().catch((e) => e);
+    expect(err).toBeInstanceOf(TickerDBError);
+    expect(err.status).toBe(400);
+    expect(calls.length).toBe(1);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Summary
 // ──────────────────────────────────────────────────────────────────────────────
 

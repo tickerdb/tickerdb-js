@@ -13,6 +13,13 @@ export interface TickerDBConfig {
    * "timeout" (status 408). Omit or set to 0 to disable (the default).
    */
   timeout?: number;
+  /**
+   * Maximum number of automatic retries for transient failures (HTTP 429, 408,
+   * and 5xx, plus network/timeout errors), using exponential backoff with
+   * jitter. Defaults to 0 (disabled). Retries apply to all requests, including
+   * non-idempotent writes, so enable with that in mind.
+   */
+  maxRetries?: number;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

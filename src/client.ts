@@ -242,6 +242,27 @@ function buildQueryString(params: Record<string, unknown>): string {
   return parts.length > 0 ? `?${parts.join("&")}` : "";
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Transient failures worth retrying: rate limits, timeouts, 5xx, and network errors. */
+function isRetryable(err: unknown): boolean {
+  if (err instanceof TickerDBError) {
+    return err.status === 429 || err.status === 408 || err.status >= 500;
+  }
+  // A thrown non-TickerDBError here is a fetch/network failure (no response).
+  return true;
+}
+
+/** Exponential backoff with full jitter, capped at 20s. */
+function backoffDelay(attempt: number): number {
+  const base = 500;
+  const cap = 20_000;
+  const ceiling = Math.min(cap, base * 2 ** attempt);
+  return Math.random() * ceiling;
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Main client class
 // ──────────────────────────────────────────────────────────────────────────────
@@ -250,6 +271,7 @@ export class TickerDB {
   private readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly timeout?: number;
+  private readonly maxRetries: number;
 
   /** Namespace for webhook endpoints. */
   public readonly webhooks: WebhookMethods;
@@ -268,6 +290,7 @@ export class TickerDB {
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.timeout = config.timeout;
+    this.maxRetries = Math.max(0, config.maxRetries ?? 0);
 
     // Bind webhook methods so they retain the correct `this` context.
     this.webhooks = {
@@ -646,6 +669,24 @@ export class TickerDB {
   // ────────────────────────────────────────────────────────────────────────────
 
   private async request<T>(
+    path: string,
+    init?: RequestInit,
+  ): Promise<APIResponse<T>> {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await this.attempt<T>(path, init);
+      } catch (err) {
+        if (attempt >= this.maxRetries || !isRetryable(err)) {
+          throw err;
+        }
+        await sleep(backoffDelay(attempt));
+        attempt += 1;
+      }
+    }
+  }
+
+  private async attempt<T>(
     path: string,
     init?: RequestInit,
   ): Promise<APIResponse<T>> {

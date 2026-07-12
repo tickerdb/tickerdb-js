@@ -60,6 +60,12 @@ try {
 }
 ```
 
+Set `maxRetries` to automatically retry transient failures (HTTP 429, 408, and 5xx, plus network/timeout errors) with exponential backoff and jitter. It defaults to `0` (disabled). Retries apply to all requests, including non-idempotent writes, so enable it with that in mind:
+
+```typescript
+const client = new TickerDB({ apiKey: "tdb_your_api_key", maxRetries: 2 });
+```
+
 ### Summary
 
 Get a detailed summary for a single ticker.
