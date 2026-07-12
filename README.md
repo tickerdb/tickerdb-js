@@ -1,6 +1,7 @@
 # TickerDB - Market context for agents.
 
 [![npm version](https://img.shields.io/npm/v/tickerdb.svg)](https://www.npmjs.com/package/tickerdb)
+[![CI](https://github.com/tickerdb/tickerdb-js/actions/workflows/ci.yml/badge.svg)](https://github.com/tickerdb/tickerdb-js/actions/workflows/ci.yml)
 
 Connect your agent to pre-computed market context that improves reasoning and reduces token usage.
 
@@ -40,7 +41,47 @@ const client = new TickerDB({
   apiKey: "tdb_your_api_key",
   // Optional: override the default base URL
   // baseUrl: "https://api.tickerdb.com/v1",
+  // Optional: abort requests that take longer than N milliseconds
+  // timeout: 30000,
 });
+```
+
+When `timeout` is set, a request that doesn't complete in time is aborted and rejects with a `TickerDBError` of type `"timeout"` (status `408`):
+
+```typescript
+const client = new TickerDB({ apiKey: "tdb_your_api_key", timeout: 30000 });
+
+try {
+  const { data } = await client.summary("AAPL");
+} catch (error) {
+  if (error instanceof TickerDBError && error.type === "timeout") {
+    console.error("Request timed out");
+  }
+}
+```
+
+Set `maxRetries` to automatically retry transient failures (HTTP 429, 408, and 5xx, plus network/timeout errors) with exponential backoff and jitter. It defaults to `0` (disabled). Retries apply to all requests, including non-idempotent writes, so enable it with that in mind:
+
+```typescript
+const client = new TickerDB({ apiKey: "tdb_your_api_key", maxRetries: 2 });
+```
+
+Read methods (`summary`, `search`, `ohlcv`, `ohlcvBars`) accept a per-call `signal` to cancel a request. It composes with the client `timeout`, and a cancelled request is never retried:
+
+```typescript
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 100);
+
+const { data } = await client.summary("AAPL", { signal: controller.signal });
+```
+
+The fluent query builder exposes the same via `.signal()`:
+
+```typescript
+const { data } = await client.query()
+  .eq("momentum_rsi_zone", "oversold")
+  .signal(controller.signal)
+  .execute();
 ```
 
 ### Summary
@@ -157,6 +198,58 @@ const { data } = await client.summary("SOLUSD", {
 console.log(data.stats);
 ```
 
+### OHLCV
+
+Get raw daily OHLCV price bars for a single ticker. Bars are split/dividend-adjusted for equities and ETFs, and unadjusted for crypto. History depth is capped by your plan, and results are cursor-paginated.
+
+```typescript
+const { data } = await client.ohlcv("AAPL");
+
+console.log(data.bars[0]);
+// { date: "2026-04-11", open: 172.3, high: 174.1, low: 171.8, close: 173.5, volume: 51234000 }
+```
+
+Control the range, order, and page size, and follow `next_cursor` to paginate:
+
+```typescript
+const { data } = await client.ohlcv("AAPL", {
+  start: "2025-01-01",
+  end: "2025-03-31",
+  order: "asc",
+  limit: 500,
+});
+
+if (data.has_more) {
+  const { data: next } = await client.ohlcv("AAPL", {
+    cursor: data.next_cursor!,
+    order: "asc",
+  });
+}
+```
+
+Each request costs `ceil(rows / 100)` credits (minimum 1).
+
+To stream every bar across a range without managing the cursor yourself, use `ohlcvBars()`, which follows `next_cursor` automatically:
+
+```typescript
+for await (const bar of client.ohlcvBars("AAPL", { start: "2024-01-01", order: "asc" })) {
+  console.log(bar.date, bar.close);
+}
+```
+
+### Account
+
+Get the authenticated account's tier, plan limits, and current usage. This is a read-only metadata endpoint and does not consume request quota.
+
+```typescript
+const { data } = await client.account();
+
+console.log(data.tier);                          // "pro"
+console.log(data.limits.monthly_requests);       // plan request cap
+console.log(data.usage.monthly_requests_remaining);
+console.log(data.usage.credit_balance);
+```
+
 ### Watchlist
 
 Get the saved watchlist snapshot for the authenticated account.
@@ -233,6 +326,122 @@ const { data } = await client.query()
   .sort('extremes_condition_percentile', 'asc')
   .limit(10)
   .execute()
+```
+
+Pass `.date('YYYY-MM-DD')` (or `date` in `search()`) to query a historical snapshot instead of the latest one:
+
+```typescript
+const { data } = await client.query()
+  .select('ticker', 'momentum_rsi_zone')
+  .eq('momentum_rsi_zone', 'oversold')
+  .date('2025-01-15')
+  .execute()
+```
+
+### Webhooks
+
+Manage webhook subscriptions for the authenticated account. Valid event types are `"watchlist.changes"` and `"data.ready"`.
+
+```typescript
+// List
+const { data } = await client.webhooks.list();
+
+// Create — returns the signing secret once, on creation
+const { data: created } = await client.webhooks.create({
+  url: "https://example.com/hooks/tickerdb",
+  events: { "watchlist.changes": true },
+});
+
+// Update
+await client.webhooks.update({ id: created.id, active: false });
+
+// Delete
+await client.webhooks.delete({ id: created.id });
+```
+
+Inspect delivery history for debugging, optionally filtered to a single webhook:
+
+```typescript
+const { data } = await client.webhooks.deliveries({
+  webhook_id: created.id,
+  limit: 50,
+});
+
+console.log(data.deliveries[0]);
+// { id, webhook_id, event_type, status, http_status, attempt_count, ... }
+```
+
+### Screeners
+
+Manage saved screeners for the authenticated account. `list()` returns built-in `defaults`, your `saved` screeners, a combined `screeners` array, and the searchable `fields` catalog.
+
+```typescript
+const { data } = await client.screeners.list();
+console.log(data.defaults.length, data.saved.length);
+```
+
+Create a saved screener from one or more filters:
+
+```typescript
+const { data } = await client.screeners.create({
+  name: "Oversold tech",
+  timeframe: "daily",
+  filters: [
+    { field: "momentum_rsi_zone", op: "in", value: ["deep_oversold", "oversold"] },
+    { field: "sector", op: "eq", value: "Technology" },
+  ],
+  sort: { field: "market_cap", direction: "desc" },
+  limit_count: 30,
+});
+
+console.log(data.screener.id);
+```
+
+Filters can also match band transitions with a `change` filter:
+
+```typescript
+await client.screeners.create({
+  filters: [
+    { type: "change", field: "trend_direction", from: "downtrend", to: "uptrend" },
+  ],
+});
+```
+
+Update or delete a saved screener. Deleting a built-in default hides it (`kind: "default"`); deleting a custom screener removes it.
+
+```typescript
+await client.screeners.update({ id, name: "Renamed screener" });
+
+await client.screeners.delete({ id });                     // remove a saved screener
+await client.screeners.delete({ id: "oversold", kind: "default" }); // hide a default
+```
+
+### Team
+
+Manage teams for the authenticated account. Listing teams works on any tier; creating teams and inviting members requires the Business plan.
+
+```typescript
+// List teams you belong to, plus your own pending invites
+const { data } = await client.team.list();
+console.log(data.teams[0]?.members);
+
+// Create a team (Business tier)
+const { data: created } = await client.team.create({ name: "Research desk" });
+const teamId = created.team.id;
+
+// Invite, promote, and manage members
+await client.team.invite({ team_id: teamId, email: "analyst@example.com", role: "member" });
+await client.team.promote({ team_id: teamId, user_id: "usr_123", role: "admin" });
+await client.team.removeMember({ team_id: teamId, user_id: "usr_123" });
+
+// Invites
+await client.team.resendInvite({ team_id: teamId, invite_id: "inv_123" });
+await client.team.cancelInvite({ team_id: teamId, invite_id: "inv_123" });
+
+// Team administration
+await client.team.rename({ team_id: teamId, name: "New name" });
+await client.team.setSeats({ team_id: teamId, total_seats: 8 });
+await client.team.leave({ team_id: teamId });
 ```
 
 ## Error Handling

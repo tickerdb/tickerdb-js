@@ -1,5 +1,10 @@
 node_modules/
 dist/
+# Stray compiled output — the real build goes to dist/
+src/*.js
+src/*.js.map
+src/*.d.ts
+src/*.d.ts.map
 *.tgz
 .env
 .env.*

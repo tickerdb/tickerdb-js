@@ -1,19 +1,49 @@
 import { TickerDBError } from "./errors.js";
+import { VERSION } from "./version.js";
 import type {
+  AccountResponse,
   AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
+  CancelTeamInviteOptions,
+  CancelTeamInviteResponse,
+  CreateScreenerOptions,
+  CreateTeamOptions,
+  CreateTeamResponse,
   CreateWebhookOptions,
+  DeleteScreenerOptions,
+  DeleteScreenerResponse,
   DeleteWebhookOptions,
+  InviteTeamMemberOptions,
+  InviteTeamMemberResponse,
+  LeaveTeamOptions,
+  LeaveTeamResponse,
+  OhlcvBar,
+  OhlcvOptions,
+  OhlcvResponse,
+  PromoteTeamMemberOptions,
+  PromoteTeamMemberResponse,
   RemoveFromWatchlistResponse,
+  RemoveTeamMemberOptions,
+  RemoveTeamMemberResponse,
+  RenameTeamOptions,
+  RenameTeamResponse,
+  ResendTeamInviteOptions,
+  ResendTeamInviteResponse,
   RateLimitInfo,
   SchemaResponse,
+  ScreenerListResponse,
+  ScreenerMutationResponse,
   SearchFilter,
   SearchOptions,
   SearchResponse,
+  SetTeamSeatsOptions,
+  SetTeamSeatsResponse,
   SummaryOptions,
   SummaryResponse,
+  TeamListResponse,
   TickerDBConfig,
+  UpdateScreenerOptions,
   UpdateWebhookOptions,
   WatchlistChangesOptions,
   WatchlistChangesResponse,
@@ -21,6 +51,8 @@ import type {
   WatchlistResponse,
   WebhookCreated,
   WebhookDeleteResponse,
+  WebhookDeliveriesOptions,
+  WebhookDeliveriesResponse,
   WebhookListResponse,
   WebhookUpdateResponse,
 } from "./types.js";
@@ -37,6 +69,8 @@ export class SearchBuilder {
   private _sortBy?: string;
   private _sortDirection?: "asc" | "desc";
   private _timeframe?: "daily" | "weekly";
+  private _date?: string;
+  private _signal?: AbortSignal;
   private _limit?: number;
   private _offset?: number;
   private client: TickerDB;
@@ -106,6 +140,16 @@ export class SearchBuilder {
     return this;
   }
 
+  date(date: string): this {
+    this._date = date;
+    return this;
+  }
+
+  signal(signal: AbortSignal): this {
+    this._signal = signal;
+    return this;
+  }
+
   async execute(): Promise<APIResponse<SearchResponse>> {
     return this.client.search({
       filters: this.filters,
@@ -113,6 +157,8 @@ export class SearchBuilder {
       sort_by: this._sortBy,
       sort_direction: this._sortDirection,
       timeframe: this._timeframe,
+      date: this._date,
+      signal: this._signal,
       limit: this._limit,
       offset: this._offset,
     });
@@ -128,6 +174,47 @@ export interface WebhookMethods {
   create(options: CreateWebhookOptions): Promise<APIResponse<WebhookCreated>>;
   update(options: UpdateWebhookOptions): Promise<APIResponse<WebhookUpdateResponse>>;
   delete(options: DeleteWebhookOptions): Promise<APIResponse<WebhookDeleteResponse>>;
+  deliveries(
+    options?: WebhookDeliveriesOptions,
+  ): Promise<APIResponse<WebhookDeliveriesResponse>>;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Screeners namespace interface
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface ScreenerMethods {
+  list(): Promise<APIResponse<ScreenerListResponse>>;
+  create(options: CreateScreenerOptions): Promise<APIResponse<ScreenerMutationResponse>>;
+  update(options: UpdateScreenerOptions): Promise<APIResponse<ScreenerMutationResponse>>;
+  delete(options: DeleteScreenerOptions): Promise<APIResponse<DeleteScreenerResponse>>;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Team namespace interface
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface TeamMethods {
+  /** List all teams you belong to, plus your own pending invites. */
+  list(): Promise<APIResponse<TeamListResponse>>;
+  /** Create a team (Business tier; one owned team per user). */
+  create(options: CreateTeamOptions): Promise<APIResponse<CreateTeamResponse>>;
+  /** Invite a member by email. */
+  invite(options: InviteTeamMemberOptions): Promise<APIResponse<InviteTeamMemberResponse>>;
+  /** Remove a member from the team. */
+  removeMember(options: RemoveTeamMemberOptions): Promise<APIResponse<RemoveTeamMemberResponse>>;
+  /** Cancel a pending invite. */
+  cancelInvite(options: CancelTeamInviteOptions): Promise<APIResponse<CancelTeamInviteResponse>>;
+  /** Resend a pending invite (refreshes its expiry). */
+  resendInvite(options: ResendTeamInviteOptions): Promise<APIResponse<ResendTeamInviteResponse>>;
+  /** Change a member's role between "admin" and "member". */
+  promote(options: PromoteTeamMemberOptions): Promise<APIResponse<PromoteTeamMemberResponse>>;
+  /** Leave a team you are a member of (owners cannot leave). */
+  leave(options: LeaveTeamOptions): Promise<APIResponse<LeaveTeamResponse>>;
+  /** Rename a team (owner only). */
+  rename(options: RenameTeamOptions): Promise<APIResponse<RenameTeamResponse>>;
+  /** Set total seat capacity (owner only; adjusts billing). */
+  setSeats(options: SetTeamSeatsOptions): Promise<APIResponse<SetTeamSeatsResponse>>;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -163,6 +250,27 @@ function buildQueryString(params: Record<string, unknown>): string {
   return parts.length > 0 ? `?${parts.join("&")}` : "";
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Transient failures worth retrying: rate limits, timeouts, 5xx, and network errors. */
+function isRetryable(err: unknown): boolean {
+  if (err instanceof TickerDBError) {
+    return err.status === 429 || err.status === 408 || err.status >= 500;
+  }
+  // A thrown non-TickerDBError here is a fetch/network failure (no response).
+  return true;
+}
+
+/** Exponential backoff with full jitter, capped at 20s. */
+function backoffDelay(attempt: number): number {
+  const base = 500;
+  const cap = 20_000;
+  const ceiling = Math.min(cap, base * 2 ** attempt);
+  return Math.random() * ceiling;
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Main client class
 // ──────────────────────────────────────────────────────────────────────────────
@@ -170,9 +278,17 @@ function buildQueryString(params: Record<string, unknown>): string {
 export class TickerDB {
   private readonly apiKey: string;
   private readonly baseUrl: string;
+  private readonly timeout?: number;
+  private readonly maxRetries: number;
 
   /** Namespace for webhook endpoints. */
   public readonly webhooks: WebhookMethods;
+
+  /** Namespace for saved-screener endpoints. */
+  public readonly screeners: ScreenerMethods;
+
+  /** Namespace for team management endpoints. */
+  public readonly team: TeamMethods;
 
   constructor(config: TickerDBConfig) {
     if (!config.apiKey) {
@@ -181,6 +297,8 @@ export class TickerDB {
 
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+    this.timeout = config.timeout;
+    this.maxRetries = Math.max(0, config.maxRetries ?? 0);
 
     // Bind webhook methods so they retain the correct `this` context.
     this.webhooks = {
@@ -188,6 +306,29 @@ export class TickerDB {
       create: this.webhookCreate.bind(this),
       update: this.webhookUpdate.bind(this),
       delete: this.webhookDelete.bind(this),
+      deliveries: this.webhookDeliveries.bind(this),
+    };
+
+    // Bind screener methods so they retain the correct `this` context.
+    this.screeners = {
+      list: this.screenerList.bind(this),
+      create: this.screenerCreate.bind(this),
+      update: this.screenerUpdate.bind(this),
+      delete: this.screenerDelete.bind(this),
+    };
+
+    // Bind team methods so they retain the correct `this` context.
+    this.team = {
+      list: this.teamList.bind(this),
+      create: (options) => this.teamAction<CreateTeamResponse>("create", options),
+      invite: (options) => this.teamAction<InviteTeamMemberResponse>("invite", options),
+      removeMember: (options) => this.teamAction<RemoveTeamMemberResponse>("remove_member", options),
+      cancelInvite: (options) => this.teamAction<CancelTeamInviteResponse>("cancel_invite", options),
+      resendInvite: (options) => this.teamAction<ResendTeamInviteResponse>("resend_invite", options),
+      promote: (options) => this.teamAction<PromoteTeamMemberResponse>("promote", options),
+      leave: (options) => this.teamAction<LeaveTeamResponse>("leave", options),
+      rename: (options) => this.teamAction<RenameTeamResponse>("rename", options),
+      setSeats: (options) => this.teamAction<SetTeamSeatsResponse>("set_seats", options),
     };
   }
 
@@ -232,7 +373,68 @@ export class TickerDB {
       context_field: options?.context_field,
       context_band: options?.context_band,
     });
-    return this.request<SummaryResponse>(`/summary/${encodeURIComponent(ticker)}${qs}`);
+    return this.request<SummaryResponse>(
+      `/summary/${encodeURIComponent(ticker)}${qs}`,
+      { signal: options?.signal },
+    );
+  }
+
+  /**
+   * Get raw daily OHLCV price bars for a single ticker.
+   *
+   * Bars are split/dividend-adjusted for equities and ETFs, unadjusted for
+   * crypto. History depth is capped by your plan; results are cursor-paginated
+   * via `next_cursor`. Cost is `ceil(rows / 100)` credits (minimum 1).
+   *
+   * @param ticker - The asset ticker symbol (e.g. "AAPL").
+   * @param options - Range, order, limit, and pagination cursor.
+   */
+  async ohlcv(
+    ticker: string,
+    options?: OhlcvOptions,
+  ): Promise<APIResponse<OhlcvResponse>> {
+    const qs = buildQueryString({
+      start: options?.start,
+      end: options?.end,
+      cursor: options?.cursor,
+      order: options?.order,
+      limit: options?.limit,
+    });
+    return this.request<OhlcvResponse>(
+      `/ohlcv/${encodeURIComponent(ticker)}${qs}`,
+      { signal: options?.signal },
+    );
+  }
+
+  /**
+   * Iterate every OHLCV bar for a ticker across pages, transparently following
+   * `next_cursor` until the range is exhausted. Each page still costs credits.
+   *
+   * @example
+   * ```ts
+   * for await (const bar of client.ohlcvBars("AAPL", { start: "2024-01-01", order: "asc" })) {
+   *   console.log(bar.date, bar.close);
+   * }
+   * ```
+   *
+   * @param ticker - The asset ticker symbol (e.g. "AAPL").
+   * @param options - Same options as `ohlcv()`; `cursor` sets the starting page.
+   */
+  async *ohlcvBars(
+    ticker: string,
+    options?: OhlcvOptions,
+  ): AsyncGenerator<OhlcvBar, void, unknown> {
+    let cursor = options?.cursor;
+    while (true) {
+      const { data } = await this.ohlcv(ticker, { ...options, cursor });
+      for (const bar of data.bars) {
+        yield bar;
+      }
+      if (!data.has_more || !data.next_cursor) {
+        return;
+      }
+      cursor = data.next_cursor;
+    }
   }
 
   /**
@@ -264,13 +466,14 @@ export class TickerDB {
     const qs = buildQueryString({
       filters: options?.filters ? JSON.stringify(options.filters) : undefined,
       timeframe: options?.timeframe,
+      date: options?.date,
       limit: options?.limit,
       offset: options?.offset,
       fields: options?.fields ? JSON.stringify(options.fields) : undefined,
       sort_by: options?.sort_by,
       sort_direction: options?.sort_direction,
     });
-    return this.request<SearchResponse>(`/search${qs}`);
+    return this.request<SearchResponse>(`/search${qs}`, { signal: options?.signal });
   }
 
   /**
@@ -278,6 +481,15 @@ export class TickerDB {
    */
   async schema(): Promise<APIResponse<SchemaResponse>> {
     return this.request<SchemaResponse>("/schema/fields");
+  }
+
+  /**
+   * Get the authenticated account's tier, plan limits, and current usage.
+   *
+   * This is a read-only metadata endpoint and does not consume request quota.
+   */
+  async account(): Promise<APIResponse<AccountResponse>> {
+    return this.request<AccountResponse>("/account");
   }
 
   /**
@@ -386,6 +598,86 @@ export class TickerDB {
     });
   }
 
+  private async webhookDeliveries(
+    options?: WebhookDeliveriesOptions,
+  ): Promise<APIResponse<WebhookDeliveriesResponse>> {
+    const qs = buildQueryString({
+      webhook_id: options?.webhook_id,
+      limit: options?.limit,
+    });
+    return this.request<WebhookDeliveriesResponse>(`/webhooks/deliveries${qs}`);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Screener methods (exposed via this.screeners.*)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private async screenerList(): Promise<APIResponse<ScreenerListResponse>> {
+    return this.request<ScreenerListResponse>("/screeners");
+  }
+
+  private async screenerCreate(
+    options: CreateScreenerOptions,
+  ): Promise<APIResponse<ScreenerMutationResponse>> {
+    return this.request<ScreenerMutationResponse>("/screeners", {
+      method: "POST",
+      body: JSON.stringify({
+        filters: options.filters,
+        name: options.name,
+        timeframe: options.timeframe,
+        sort: options.sort,
+        limit_count: options.limit_count,
+      }),
+    });
+  }
+
+  private async screenerUpdate(
+    options: UpdateScreenerOptions,
+  ): Promise<APIResponse<ScreenerMutationResponse>> {
+    return this.request<ScreenerMutationResponse>("/screeners", {
+      method: "PUT",
+      body: JSON.stringify({
+        id: options.id,
+        filters: options.filters,
+        name: options.name,
+        timeframe: options.timeframe,
+        sort: options.sort,
+        limit_count: options.limit_count,
+      }),
+    });
+  }
+
+  private async screenerDelete(
+    options: DeleteScreenerOptions,
+  ): Promise<APIResponse<DeleteScreenerResponse>> {
+    const qs = buildQueryString({
+      id: options.id,
+      kind: options.kind,
+    });
+    return this.request<DeleteScreenerResponse>(`/screeners${qs}`, {
+      method: "DELETE",
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Team methods (exposed via this.team.*)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private async teamList(): Promise<APIResponse<TeamListResponse>> {
+    return this.request<TeamListResponse>("/team");
+  }
+
+  /** POST /team dispatches on an `action` discriminator in the body. */
+  private async teamAction<T>(
+    action: string,
+    options: object,
+  ): Promise<APIResponse<T>> {
+    return this.request<T>("/team", {
+      method: "POST",
+      body: JSON.stringify({ action, ...options }),
+    });
+  }
+
   // ────────────────────────────────────────────────────────────────────────────
   // Internal HTTP layer
   // ────────────────────────────────────────────────────────────────────────────
@@ -394,51 +686,119 @@ export class TickerDB {
     path: string,
     init?: RequestInit,
   ): Promise<APIResponse<T>> {
+    let attempt = 0;
+    while (true) {
+      try {
+        return await this.attempt<T>(path, init);
+      } catch (err) {
+        // Never retry after a caller-initiated cancellation.
+        if (
+          init?.signal?.aborted ||
+          attempt >= this.maxRetries ||
+          !isRetryable(err)
+        ) {
+          throw err;
+        }
+        await sleep(backoffDelay(attempt));
+        attempt += 1;
+      }
+    }
+  }
+
+  private async attempt<T>(
+    path: string,
+    init?: RequestInit,
+  ): Promise<APIResponse<T>> {
     const url = `${this.baseUrl}${path}`;
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
       Accept: "application/json",
+      "X-TickerDB-Client": `tickerdb-js/${VERSION}`,
     };
 
     if (init?.body) {
       headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(url, {
-      method: init?.method ?? "GET",
-      headers,
-      body: init?.body,
-    });
-
-    const rateLimit = parseRateLimitHeaders(response.headers);
-
-    if (!response.ok) {
-      let errorBody: APIErrorBody | undefined;
-      try {
-        errorBody = (await response.json()) as APIErrorBody;
-      } catch {
-        // Non-JSON error body — fall through to generic error.
-      }
-
-      const errType = errorBody?.error?.type ?? "unknown_error";
-      const errMessage =
-        errorBody?.error?.message ?? `Request failed with status ${response.status}`;
-      const upgradeUrl = errorBody?.error?.upgrade_url;
-      const resetAt =
-        errorBody?.error?.reset ?? rateLimit.requestReset ?? undefined;
-
-      throw new TickerDBError(
-        response.status,
-        errType,
-        errMessage,
-        upgradeUrl,
-        resetAt,
-      );
+    const userSignal = init?.signal ?? undefined;
+    // Honor a caller cancellation that happened before we even started.
+    if (userSignal?.aborted) {
+      throw userSignal.reason ?? new DOMException("This operation was aborted.", "AbortError");
     }
 
-    const data = (await response.json()) as T;
+    // A controller is needed to enforce a timeout and/or forward the caller's
+    // signal. When neither is in play, fetch runs without one (unchanged path).
+    // The timer is cleared in `finally` so a fast response never leaks it.
+    const hasTimeout = this.timeout !== undefined && this.timeout > 0;
+    const controller = hasTimeout || userSignal ? new AbortController() : undefined;
+    const timer = hasTimeout && controller
+      ? setTimeout(() => controller.abort(), this.timeout)
+      : undefined;
+    const onUserAbort = () => controller?.abort(userSignal?.reason);
+    if (userSignal && controller) {
+      userSignal.addEventListener("abort", onUserAbort, { once: true });
+    }
 
-    return { data, rateLimit };
+    try {
+      const response = await fetch(url, {
+        method: init?.method ?? "GET",
+        headers,
+        body: init?.body,
+        signal: controller?.signal,
+      });
+
+      const rateLimit = parseRateLimitHeaders(response.headers);
+
+      if (!response.ok) {
+        let errorBody: APIErrorBody | undefined;
+        try {
+          errorBody = (await response.json()) as APIErrorBody;
+        } catch {
+          // Non-JSON error body — fall through to generic error.
+        }
+
+        const errType = errorBody?.error?.type ?? "unknown_error";
+        const errMessage =
+          errorBody?.error?.message ?? `Request failed with status ${response.status}`;
+        const upgradeUrl = errorBody?.error?.upgrade_url;
+        const resetAt =
+          errorBody?.error?.reset ?? rateLimit.requestReset ?? undefined;
+
+        throw new TickerDBError(
+          response.status,
+          errType,
+          errMessage,
+          upgradeUrl,
+          resetAt,
+        );
+      }
+
+      const data = (await response.json()) as T;
+
+      return { data, rateLimit };
+    } catch (err) {
+      if (controller?.signal.aborted) {
+        // Caller cancellation takes precedence — rethrow their reason so it
+        // stays a cancellation (and never gets retried).
+        if (userSignal?.aborted) {
+          throw userSignal.reason ?? err;
+        }
+        // Otherwise the abort was our own timeout firing.
+        throw new TickerDBError(
+          408,
+          "timeout",
+          `Request timed out after ${this.timeout}ms.`,
+        );
+      }
+      throw err;
+    } finally {
+      if (userSignal) {
+        userSignal.removeEventListener("abort", onUserAbort);
+      }
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    }
   }
 }

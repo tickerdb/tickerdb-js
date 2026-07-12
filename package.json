@@ -1,6 +1,6 @@
 {
   "name": "tickerdb",
-  "version": "0.1.25",
+  "version": "0.2.0",
   "description": "Connect your agent to pre-computed market context that improves reasoning and reduces token usage.",
   "author": "TickerDB",
   "license": "MIT",
@@ -38,16 +38,19 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
     "build:esm": "npx tsc --project tsconfig.esm.json",
     "build:cjs": "npx tsc --project tsconfig.cjs.json",
     "build": "npm run build:esm && npm run build:cjs",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=18.0.0"

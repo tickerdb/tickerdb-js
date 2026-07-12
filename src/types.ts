@@ -7,6 +7,19 @@ export interface TickerDBConfig {
   apiKey: string;
   /** Override the default base URL (https://api.tickerdb.com/v1). */
   baseUrl?: string;
+  /**
+   * Per-request timeout in milliseconds. When set, a request that does not
+   * complete in time is aborted and rejects with a `TickerDBError` of type
+   * "timeout" (status 408). Omit or set to 0 to disable (the default).
+   */
+  timeout?: number;
+  /**
+   * Maximum number of automatic retries for transient failures (HTTP 429, 408,
+   * and 5xx, plus network/timeout errors), using exponential backoff with
+   * jitter. Defaults to 0 (disabled). Retries apply to all requests, including
+   * non-idempotent writes, so enable with that in mind.
+   */
+  maxRetries?: number;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -14,6 +27,16 @@ export interface TickerDBConfig {
 // ──────────────────────────────────────────────────────────────────────────────
 
 export type Timeframe = "daily" | "weekly";
+
+/** Per-request controls shared across endpoints that accept an options object. */
+export interface RequestOptions {
+  /**
+   * An `AbortSignal` to cancel this request. Composes with the client-level
+   * `timeout`; a cancelled request rejects with the signal's reason and is
+   * never retried.
+   */
+  signal?: AbortSignal;
+}
 
 export type Stability = "fresh" | "holding" | "established" | "volatile";
 export type SearchOperator = "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte";
@@ -71,7 +94,7 @@ export interface APIErrorBody {
 // GET /v1/summary/:ticker
 // ──────────────────────────────────────────────────────────────────────────────
 
-export interface SummaryOptions {
+export interface SummaryOptions extends RequestOptions {
   /** "daily" or "weekly". Defaults to "daily". */
   timeframe?: Timeframe;
   /** ISO 8601 date string (YYYY-MM-DD) for point-in-time snapshot. */
@@ -119,6 +142,85 @@ export interface SummaryOptions {
 export type SummaryResponse = Record<string, unknown>;
 
 // ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/ohlcv/:ticker
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface OhlcvOptions extends RequestOptions {
+  /** Range start date (YYYY-MM-DD). Clamped to your plan's history window. */
+  start?: string;
+  /** Range end date (YYYY-MM-DD). */
+  end?: string;
+  /** Pagination cursor (YYYY-MM-DD) — pass the previous response's `next_cursor`. */
+  cursor?: string;
+  /** Bar order. Defaults to "desc" (newest first). */
+  order?: "asc" | "desc";
+  /** Max bars to return (1-1000). Defaults to 100. Cost is ceil(rows / 100) credits. */
+  limit?: number;
+}
+
+export interface OhlcvBar {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface OhlcvResponse {
+  ticker: string;
+  asset_class: string;
+  currency: string | null;
+  timeframe: "daily";
+  data_status: "eod";
+  /** "split_and_dividend_adjusted" for equities/ETFs, "none" for crypto. */
+  adjustment: "split_and_dividend_adjusted" | "none";
+  order: "asc" | "desc";
+  start: string;
+  end: string | null;
+  row_count: number;
+  has_more: boolean;
+  /** Feed back into `cursor` to fetch the next page, or null when exhausted. */
+  next_cursor: string | null;
+  bars: OhlcvBar[];
+  plan_history_days: number;
+  plan: string;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GET /v1/account
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface AccountLimits {
+  monthly_requests: number;
+  overage_enabled: boolean;
+  watchlist_limit: number;
+  search_results: number;
+  webhook_urls: number;
+  history_days: number;
+}
+
+export interface AccountUsage {
+  monthly_requests_used: number;
+  monthly_requests_remaining: number;
+  credit_balance: number;
+}
+
+export interface AccountResponse {
+  /** Base tier slug (e.g. "free", "plus", "pro", "business"). */
+  tier: string;
+  /** Full tier identifier, including seat variants where applicable. */
+  tier_full: string;
+  email: string;
+  limits: AccountLimits;
+  usage: AccountUsage;
+  /** Pending scheduled tier change (e.g. a downgrade), or null. */
+  scheduled_tier: string | null;
+  /** ISO timestamp for when the scheduled change takes effect, or null. */
+  scheduled_change_at: string | null;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // GET /v1/search
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -133,7 +235,7 @@ export interface SearchFilter {
   value: unknown;
 }
 
-export interface SearchOptions {
+export interface SearchOptions extends RequestOptions {
   /**
    * Search filters as an array of { field, op, value } objects.
    * Example:
@@ -142,6 +244,8 @@ export interface SearchOptions {
   filters?: SearchFilter[];
   /** "daily" or "weekly". Defaults to "daily". */
   timeframe?: Timeframe;
+  /** Optional historical snapshot date (YYYY-MM-DD). Omit for the latest snapshot. */
+  date?: string;
   /** Max results to return. */
   limit?: number;
   /** Pagination offset. */
@@ -259,7 +363,14 @@ export interface WatchlistChangesResponse {
 // Webhook CRUD
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type WebhookEvents = Record<string, boolean>;
+/** Known webhook event types. New types may be added server-side over time. */
+export type WebhookEventType = "watchlist.changes" | "data.ready";
+
+/** Map of event type -> enabled. Known types autocomplete; arbitrary keys stay
+ *  allowed so the SDK remains forward-compatible with new server event types. */
+export type WebhookEvents =
+  & Partial<Record<WebhookEventType, boolean>>
+  & Record<string, boolean>;
 
 export interface CreateWebhookOptions {
   url: string;
@@ -309,5 +420,279 @@ export interface WebhookUpdateResponse {
 export interface WebhookDeleteResponse {
   deleted: string;
   webhook_count: number;
+}
+
+// GET /v1/webhooks/deliveries
+
+export interface WebhookDeliveriesOptions {
+  /** Filter to a single webhook's deliveries. */
+  webhook_id?: string;
+  /** Max deliveries to return (1-200). Defaults to 50. */
+  limit?: number;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  webhook_id: string;
+  event_type: string;
+  timeframe: string;
+  run_date: string;
+  status: string;
+  attempt_count: number | null;
+  http_status: number | null;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface WebhookDeliveriesResponse {
+  deliveries: WebhookDelivery[];
+  count: number;
+  limit: number;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Screeners CRUD (GET/POST/PUT/DELETE /v1/screeners)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type ScreenerTimeframe = Timeframe;
+/** "default" for built-in screeners, "custom" for user-saved ones. */
+export type ScreenerKind = "default" | "custom";
+export type ScreenerFilterOp =
+  | "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte" | "exists" | "changed";
+/** "value" filters match the current snapshot; "change" filters match a band transition. */
+export type ScreenerFilterKind = "value" | "change";
+
+export interface ScreenerFilter {
+  /** Defaults to "value". Use "change" (with `from`/`to`) for transition filters. */
+  type?: ScreenerFilterKind;
+  field: string;
+  op: ScreenerFilterOp;
+  /** For value filters. Arrays are used with the "in" operator. */
+  value?: string | number | boolean | Array<string | number | boolean>;
+  /** Change filters: the prior band value. */
+  from?: string | number | boolean;
+  /** Change filters: the new band value. */
+  to?: string | number | boolean;
+  /** Change filters: lookback window in periods. */
+  periods?: number;
+}
+
+export interface ScreenerSort {
+  field: string;
+  direction: "asc" | "desc";
+}
+
+export interface Screener {
+  id: string;
+  kind: ScreenerKind;
+  name: string;
+  description: string;
+  timeframe: ScreenerTimeframe;
+  filters: ScreenerFilter[];
+  return_fields: string[];
+  sort: ScreenerSort | null;
+  /** True for built-in default screeners, which cannot be edited. */
+  readonly?: boolean;
+}
+
+export interface ScreenerListResponse {
+  defaults: Screener[];
+  saved: Screener[];
+  /** Convenience: defaults followed by saved screeners. */
+  screeners: Screener[];
+  /** The searchable field catalog, same shape as GET /v1/schema/fields. */
+  fields: SchemaField[];
+}
+
+export interface CreateScreenerOptions {
+  filters: ScreenerFilter[];
+  name?: string;
+  timeframe?: ScreenerTimeframe;
+  sort?: ScreenerSort | null;
+  /** Result cap for the saved screener (1-50). Defaults to 30. */
+  limit_count?: number;
+}
+
+export interface UpdateScreenerOptions {
+  id: string;
+  filters?: ScreenerFilter[];
+  name?: string;
+  timeframe?: ScreenerTimeframe;
+  sort?: ScreenerSort | null;
+  limit_count?: number;
+}
+
+export interface DeleteScreenerOptions {
+  id: string;
+  /** "custom" (default) deletes a saved screener; "default" hides a built-in one. */
+  kind?: ScreenerKind;
+}
+
+export interface ScreenerMutationResponse {
+  screener: Screener;
+}
+
+export interface DeleteScreenerResponse {
+  ok: boolean;
+  deleted?: boolean;
+  hidden?: boolean;
+  id: string;
+  kind: ScreenerKind;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Team management (GET /v1/team, POST /v1/team actions) — Business tier
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type TeamRole = "owner" | "admin" | "member";
+/** Roles that can be assigned to a member (owner is fixed to the team creator). */
+export type AssignableTeamRole = "admin" | "member";
+
+export interface TeamMember {
+  user_id: string;
+  email: string;
+  name: string | null;
+  role: TeamRole;
+  joined_at: string | null;
+}
+
+export interface TeamPendingInvite {
+  id: string;
+  email: string;
+  role: AssignableTeamRole;
+  expires_at: string | null;
+  created_at: string | null;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  max_seats: number;
+  extra_seats: number;
+  seats_used: number;
+  seats_available: number;
+  your_role: TeamRole;
+  members: TeamMember[];
+  pending_invites: TeamPendingInvite[];
+}
+
+export interface MyTeamInvite {
+  id: string;
+  team_id: string;
+  team_name: string;
+  role: AssignableTeamRole;
+  inviter_email: string;
+  expires_at: string | null;
+}
+
+export interface TeamListResponse {
+  teams: Team[];
+  my_pending_invites: MyTeamInvite[];
+}
+
+export interface CreateTeamOptions {
+  name: string;
+}
+
+export interface CreateTeamResponse {
+  team: { id: string; name: string; max_seats: number; your_role: "owner" };
+  message: string;
+}
+
+export interface InviteTeamMemberOptions {
+  team_id: string;
+  email: string;
+  /** Defaults to "member". */
+  role?: AssignableTeamRole;
+}
+
+export interface InviteTeamMemberResponse {
+  invite: {
+    id: string;
+    email: string;
+    role: AssignableTeamRole;
+    expires_at: string;
+    team_id: string;
+  };
+  message: string;
+}
+
+export interface RemoveTeamMemberOptions {
+  team_id: string;
+  user_id: string;
+}
+
+export interface RemoveTeamMemberResponse {
+  removed: string;
+  message: string;
+}
+
+export interface CancelTeamInviteOptions {
+  team_id: string;
+  invite_id: string;
+}
+
+export interface CancelTeamInviteResponse {
+  cancelled: string;
+  message: string;
+}
+
+export interface ResendTeamInviteOptions {
+  team_id: string;
+  invite_id: string;
+}
+
+export interface ResendTeamInviteResponse {
+  resent: string;
+  expires_at: string;
+  message: string;
+}
+
+export interface PromoteTeamMemberOptions {
+  team_id: string;
+  user_id: string;
+  role: AssignableTeamRole;
+}
+
+export interface PromoteTeamMemberResponse {
+  user_id: string;
+  previous_role: TeamRole;
+  new_role: AssignableTeamRole;
+  message: string;
+}
+
+export interface LeaveTeamOptions {
+  team_id: string;
+}
+
+export interface LeaveTeamResponse {
+  message: string;
+}
+
+export interface RenameTeamOptions {
+  team_id: string;
+  name: string;
+}
+
+export interface RenameTeamResponse {
+  team_id: string;
+  name: string;
+  message: string;
+}
+
+export interface SetTeamSeatsOptions {
+  team_id: string;
+  /** Desired total capacity (included + extra seats). */
+  total_seats: number;
+}
+
+export interface SetTeamSeatsResponse {
+  team_id: string;
+  max_seats: number;
+  extra_seats: number;
+  seats_used: number;
+  seat_price_monthly: number;
+  message: string;
 }
 
