@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TickerDB, TickerDBError } from "../src/index.js";
+import { TickerDB, TickerDBError, VERSION } from "../src/index.js";
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Test helpers
@@ -53,6 +54,15 @@ function lastCall() {
 // Construction
 // ──────────────────────────────────────────────────────────────────────────────
 
+describe("version", () => {
+  it("VERSION matches package.json", () => {
+    const pkg = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
+    expect(VERSION).toBe(pkg.version);
+  });
+});
+
 describe("construction", () => {
   it("throws when apiKey is missing", () => {
     // @ts-expect-error intentionally missing apiKey
@@ -79,6 +89,13 @@ describe("request layer", () => {
     expect(headers.Authorization).toBe("Bearer tdb_test_key");
     expect(headers.Accept).toBe("application/json");
     expect(data).toEqual({ hello: "world" });
+  });
+
+  it("sends a client-identifying header", async () => {
+    queue(jsonResponse({}));
+    await client().account();
+    const headers = lastCall().init.headers as Record<string, string>;
+    expect(headers["X-TickerDB-Client"]).toMatch(/^tickerdb-js\/\d+\.\d+\.\d+$/);
   });
 
   it("parses rate limit headers", async () => {

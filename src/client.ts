@@ -1,4 +1,5 @@
 import { TickerDBError } from "./errors.js";
+import { VERSION } from "./version.js";
 import type {
   AccountResponse,
   AddToWatchlistResponse,
@@ -695,6 +696,7 @@ export class TickerDB {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
       Accept: "application/json",
+      "X-TickerDB-Client": `tickerdb-js/${VERSION}`,
     };
 
     if (init?.body) {

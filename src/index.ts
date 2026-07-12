@@ -1,6 +1,7 @@
 export { TickerDB, SearchBuilder } from "./client.js";
 export type { ScreenerMethods, TeamMethods, WebhookMethods } from "./client.js";
 export { TickerDBError } from "./errors.js";
+export { VERSION } from "./version.js";
 export type {
   AccountLimits,
   AccountResponse,

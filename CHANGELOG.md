@@ -16,6 +16,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   jitter. Defaults to 0 (disabled).
 - Continuous integration workflow (GitHub Actions) running build and tests on
   Node 20.x and 22.x.
+- Exported `VERSION` constant, also sent on every request via an
+  `X-TickerDB-Client` header for server-side observability.
 - Test suite (vitest) covering the request layer and every public method.
 
 ### Removed
