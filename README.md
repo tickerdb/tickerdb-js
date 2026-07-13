@@ -1,9 +1,9 @@
-# TickerDB - Market context for agents.
+# TickerDB - Pre-computed market data for agents.
 
 [![npm version](https://img.shields.io/npm/v/tickerdb.svg)](https://www.npmjs.com/package/tickerdb)
 [![CI](https://github.com/tickerdb/tickerdb-js/actions/workflows/ci.yml/badge.svg)](https://github.com/tickerdb/tickerdb-js/actions/workflows/ci.yml)
 
-Connect your agent to pre-computed market context that improves reasoning and reduces token usage.
+Connect your agent to hundreds of indicators like trend_direction, support_level, and analyst_consensus to improve reasoning and reduce token usage.
 
 - Zero dependencies -- uses native `fetch` (Node.js 18+)
 - First-class TypeScript support with full type definitions
