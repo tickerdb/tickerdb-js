@@ -2,15 +2,12 @@ import { TickerDBError } from "./errors.js";
 import { VERSION } from "./version.js";
 import type {
   AccountResponse,
-  AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
   CancelTeamInviteOptions,
   CancelTeamInviteResponse,
   CreateTeamOptions,
   CreateTeamResponse,
-  CreateWebhookOptions,
-  DeleteWebhookOptions,
   InviteTeamMemberOptions,
   InviteTeamMemberResponse,
   LeaveTeamOptions,
@@ -20,7 +17,6 @@ import type {
   OhlcvResponse,
   PromoteTeamMemberOptions,
   PromoteTeamMemberResponse,
-  RemoveFromWatchlistResponse,
   RemoveTeamMemberOptions,
   RemoveTeamMemberResponse,
   RenameTeamOptions,
@@ -38,17 +34,6 @@ import type {
   SummaryResponse,
   TeamListResponse,
   TickerDBConfig,
-  UpdateWebhookOptions,
-  WatchlistChangesOptions,
-  WatchlistChangesResponse,
-  WatchlistOptions,
-  WatchlistResponse,
-  WebhookCreated,
-  WebhookDeleteResponse,
-  WebhookDeliveriesOptions,
-  WebhookDeliveriesResponse,
-  WebhookListResponse,
-  WebhookUpdateResponse,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.tickerdb.com/v1";
@@ -160,20 +145,6 @@ export class SearchBuilder {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Webhooks namespace interface
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface WebhookMethods {
-  list(): Promise<APIResponse<WebhookListResponse>>;
-  create(options: CreateWebhookOptions): Promise<APIResponse<WebhookCreated>>;
-  update(options: UpdateWebhookOptions): Promise<APIResponse<WebhookUpdateResponse>>;
-  delete(options: DeleteWebhookOptions): Promise<APIResponse<WebhookDeleteResponse>>;
-  deliveries(
-    options?: WebhookDeliveriesOptions,
-  ): Promise<APIResponse<WebhookDeliveriesResponse>>;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
 // Team namespace interface
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -264,9 +235,6 @@ export class TickerDB {
   private readonly timeout?: number;
   private readonly maxRetries: number;
 
-  /** Namespace for webhook endpoints. */
-  public readonly webhooks: WebhookMethods;
-
   /** Namespace for team management endpoints. */
   public readonly team: TeamMethods;
 
@@ -279,15 +247,6 @@ export class TickerDB {
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.timeout = config.timeout;
     this.maxRetries = Math.max(0, config.maxRetries ?? 0);
-
-    // Bind webhook methods so they retain the correct `this` context.
-    this.webhooks = {
-      list: this.webhookList.bind(this),
-      create: this.webhookCreate.bind(this),
-      update: this.webhookUpdate.bind(this),
-      delete: this.webhookDelete.bind(this),
-      deliveries: this.webhookDeliveries.bind(this),
-    };
 
     // Bind team methods so they retain the correct `this` context.
     this.team = {
@@ -462,122 +421,6 @@ export class TickerDB {
    */
   async account(): Promise<APIResponse<AccountResponse>> {
     return this.request<AccountResponse>("/account");
-  }
-
-  /**
-   * Get the saved watchlist snapshot for the authenticated account.
-   *
-   * @param options - Optional parameters (currently only historical `date`).
-   */
-  async watchlist(
-    options?: WatchlistOptions,
-  ): Promise<APIResponse<WatchlistResponse>> {
-    const qs = buildQueryString({
-      date: options?.date,
-    });
-    return this.request<WatchlistResponse>(`/watchlist${qs}`);
-  }
-
-  /**
-   * Add ticker symbols to the saved watchlist.
-   */
-  async addToWatchlist(
-    tickers: string[],
-  ): Promise<APIResponse<AddToWatchlistResponse>> {
-    return this.request<AddToWatchlistResponse>("/watchlist", {
-      method: "POST",
-      body: JSON.stringify({
-        tickers: tickers.map((ticker) => ticker.toUpperCase()),
-      }),
-    });
-  }
-
-  /**
-   * Remove ticker symbols from the saved watchlist.
-   */
-  async removeFromWatchlist(
-    tickers: string[],
-  ): Promise<APIResponse<RemoveFromWatchlistResponse>> {
-    return this.request<RemoveFromWatchlistResponse>("/watchlist", {
-      method: "DELETE",
-      body: JSON.stringify({
-        tickers: tickers.map((ticker) => ticker.toUpperCase()),
-      }),
-    });
-  }
-
-  /**
-   * Get field-level state changes for your saved watchlist tickers.
-   *
-   * Returns structured diffs showing what changed since the last pipeline run
-   * (day-over-day for daily, week-over-week for weekly). Available on all tiers.
-   *
-   * @param options - Optional parameters (timeframe).
-   */
-  async watchlistChanges(
-    options?: WatchlistChangesOptions,
-  ): Promise<APIResponse<WatchlistChangesResponse>> {
-    const params = new URLSearchParams();
-    if (options?.timeframe) params.set("timeframe", options.timeframe);
-    const qs = params.toString();
-    return this.request<WatchlistChangesResponse>(
-      `/watchlist/changes${qs ? `?${qs}` : ""}`,
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Webhook methods (exposed via this.webhooks.*)
-  // ────────────────────────────────────────────────────────────────────────────
-
-  private async webhookList(): Promise<APIResponse<WebhookListResponse>> {
-    return this.request<WebhookListResponse>("/webhooks");
-  }
-
-  private async webhookCreate(
-    options: CreateWebhookOptions,
-  ): Promise<APIResponse<WebhookCreated>> {
-    return this.request<WebhookCreated>("/webhooks", {
-      method: "POST",
-      body: JSON.stringify({
-        url: options.url,
-        events: options.events,
-      }),
-    });
-  }
-
-  private async webhookUpdate(
-    options: UpdateWebhookOptions,
-  ): Promise<APIResponse<WebhookUpdateResponse>> {
-    return this.request<WebhookUpdateResponse>("/webhooks", {
-      method: "PUT",
-      body: JSON.stringify({
-        id: options.id,
-        url: options.url,
-        events: options.events,
-        active: options.active,
-      }),
-    });
-  }
-
-  private async webhookDelete(
-    options: DeleteWebhookOptions,
-  ): Promise<APIResponse<WebhookDeleteResponse>> {
-    return this.request<WebhookDeleteResponse>("/webhooks", {
-      method: "DELETE",
-      body: JSON.stringify({
-        id: options.id,
-      }),
-    });
-  }
-
-  private async webhookDeliveries(
-    options?: WebhookDeliveriesOptions,
-  ): Promise<APIResponse<WebhookDeliveriesResponse>> {
-    const qs = buildQueryString({
-      webhook_id: options?.webhook_id,
-      limit: options?.limit,
-    });
-    return this.request<WebhookDeliveriesResponse>(`/webhooks/deliveries${qs}`);
   }
 
   // ────────────────────────────────────────────────────────────────────────────

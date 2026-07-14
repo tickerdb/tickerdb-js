@@ -43,7 +43,7 @@ export type SearchOperator = "eq" | "neq" | "in" | "gt" | "gte" | "lt" | "lte";
 export type SchemaOperator = SearchOperator;
 export type SchemaFieldType = "text" | "integer" | "numeric" | "boolean" | "bigint";
 
-/** Full band metadata available on paid tiers when requested on summary or included in watchlist responses. */
+/** Full band metadata available on paid tiers when requested on summary. */
 export interface BandMeta {
   timeframe: "daily" | "weekly";
   periods_in_current_state: number;
@@ -194,9 +194,7 @@ export interface OhlcvResponse {
 export interface AccountLimits {
   monthly_requests: number;
   overage_enabled: boolean;
-  watchlist_limit: number;
   search_results: number;
-  webhook_urls: number;
   history_days: number;
 }
 
@@ -299,156 +297,6 @@ export interface SchemaResponse {
   categories: string[];
   operators: SchemaOperator[];
   fields: SchemaField[];
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// GET /v1/watchlist
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface WatchlistOptions {
-  /** Optional historical snapshot date (YYYY-MM-DD). Omit for the latest saved-watchlist snapshot. */
-  date?: string;
-}
-
-export type WatchlistResponse = Record<string, unknown>;
-
-// POST /v1/watchlist
-
-export interface AddToWatchlistResponse {
-  added: string[];
-  already_saved: string[];
-  watchlist_count: number;
-  watchlist_limit: number;
-}
-
-// DELETE /v1/watchlist
-
-export interface RemoveFromWatchlistResponse {
-  removed: string[];
-  watchlist_count: number;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// GET /v1/watchlist/changes
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface WatchlistChangesOptions {
-  timeframe?: Timeframe;
-}
-
-export interface WatchlistChangeEntry {
-  field: string;
-  from: unknown;
-  to: unknown;
-  stability?: Stability;
-  periods_in_current_state?: number;
-  flips_recent?: number;
-  flips_lookback?: string;
-}
-
-export interface TickerContext {
-  last_changed_date: string | null;
-}
-
-export interface WatchlistChangesResponse {
-  timeframe: string;
-  run_date: string | null;
-  changes: Record<string, WatchlistChangeEntry[]>;
-  ticker_context: Record<string, TickerContext>;
-  tickers_checked: number;
-  tickers_changed: number;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Webhook CRUD
-// ──────────────────────────────────────────────────────────────────────────────
-
-/** Known webhook event types. New types may be added server-side over time. */
-export type WebhookEventType = "watchlist.changes" | "data.ready";
-
-/** Map of event type -> enabled. Known types autocomplete; arbitrary keys stay
- *  allowed so the SDK remains forward-compatible with new server event types. */
-export type WebhookEvents =
-  & Partial<Record<WebhookEventType, boolean>>
-  & Record<string, boolean>;
-
-export interface CreateWebhookOptions {
-  url: string;
-  events?: WebhookEvents;
-}
-
-export interface UpdateWebhookOptions {
-  id: string;
-  url?: string;
-  events?: WebhookEvents;
-  active?: boolean;
-}
-
-export interface DeleteWebhookOptions {
-  id: string;
-}
-
-export interface Webhook {
-  id: string;
-  url: string;
-  events: WebhookEvents;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface WebhookCreated {
-  id: string;
-  url: string;
-  secret: string;
-  events: WebhookEvents;
-  active: boolean;
-  created_at: string;
-}
-
-export interface WebhookListResponse {
-  webhooks: Webhook[];
-  webhook_count: number;
-  webhook_limit: number;
-}
-
-export interface WebhookUpdateResponse {
-  updated: boolean;
-  id: string;
-}
-
-export interface WebhookDeleteResponse {
-  deleted: string;
-  webhook_count: number;
-}
-
-// GET /v1/webhooks/deliveries
-
-export interface WebhookDeliveriesOptions {
-  /** Filter to a single webhook's deliveries. */
-  webhook_id?: string;
-  /** Max deliveries to return (1-200). Defaults to 50. */
-  limit?: number;
-}
-
-export interface WebhookDelivery {
-  id: string;
-  webhook_id: string;
-  event_type: string;
-  timeframe: string;
-  run_date: string;
-  status: string;
-  attempt_count: number | null;
-  http_status: number | null;
-  error: string | null;
-  started_at: string | null;
-  completed_at: string | null;
-}
-
-export interface WebhookDeliveriesResponse {
-  deliveries: WebhookDelivery[];
-  count: number;
-  limit: number;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

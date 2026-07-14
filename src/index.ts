@@ -1,12 +1,11 @@
 export { TickerDB, SearchBuilder } from "./client.js";
-export type { TeamMethods, WebhookMethods } from "./client.js";
+export type { TeamMethods } from "./client.js";
 export { TickerDBError } from "./errors.js";
 export { VERSION } from "./version.js";
 export type {
   AccountLimits,
   AccountResponse,
   AccountUsage,
-  AddToWatchlistResponse,
   APIErrorBody,
   APIResponse,
   BandMeta,
@@ -15,8 +14,6 @@ export type {
   CancelTeamInviteResponse,
   CreateTeamOptions,
   CreateTeamResponse,
-  CreateWebhookOptions,
-  DeleteWebhookOptions,
   InviteTeamMemberOptions,
   InviteTeamMemberResponse,
   LeaveTeamOptions,
@@ -50,23 +47,5 @@ export type {
   TeamPendingInvite,
   TeamRole,
   TickerDBConfig,
-  TickerContext,
   Timeframe,
-  UpdateWebhookOptions,
-  RemoveFromWatchlistResponse,
-  WatchlistChangeEntry,
-  WatchlistChangesOptions,
-  WatchlistChangesResponse,
-  WatchlistOptions,
-  WatchlistResponse,
-  Webhook,
-  WebhookCreated,
-  WebhookDeleteResponse,
-  WebhookDeliveriesOptions,
-  WebhookDeliveriesResponse,
-  WebhookDelivery,
-  WebhookEvents,
-  WebhookEventType,
-  WebhookListResponse,
-  WebhookUpdateResponse,
 } from "./types.js";
