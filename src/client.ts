@@ -7,12 +7,9 @@ import type {
   APIResponse,
   CancelTeamInviteOptions,
   CancelTeamInviteResponse,
-  CreateScreenerOptions,
   CreateTeamOptions,
   CreateTeamResponse,
   CreateWebhookOptions,
-  DeleteScreenerOptions,
-  DeleteScreenerResponse,
   DeleteWebhookOptions,
   InviteTeamMemberOptions,
   InviteTeamMemberResponse,
@@ -32,8 +29,6 @@ import type {
   ResendTeamInviteResponse,
   RateLimitInfo,
   SchemaResponse,
-  ScreenerListResponse,
-  ScreenerMutationResponse,
   SearchFilter,
   SearchOptions,
   SearchResponse,
@@ -43,7 +38,6 @@ import type {
   SummaryResponse,
   TeamListResponse,
   TickerDBConfig,
-  UpdateScreenerOptions,
   UpdateWebhookOptions,
   WatchlistChangesOptions,
   WatchlistChangesResponse,
@@ -180,17 +174,6 @@ export interface WebhookMethods {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Screeners namespace interface
-// ──────────────────────────────────────────────────────────────────────────────
-
-export interface ScreenerMethods {
-  list(): Promise<APIResponse<ScreenerListResponse>>;
-  create(options: CreateScreenerOptions): Promise<APIResponse<ScreenerMutationResponse>>;
-  update(options: UpdateScreenerOptions): Promise<APIResponse<ScreenerMutationResponse>>;
-  delete(options: DeleteScreenerOptions): Promise<APIResponse<DeleteScreenerResponse>>;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
 // Team namespace interface
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -284,9 +267,6 @@ export class TickerDB {
   /** Namespace for webhook endpoints. */
   public readonly webhooks: WebhookMethods;
 
-  /** Namespace for saved-screener endpoints. */
-  public readonly screeners: ScreenerMethods;
-
   /** Namespace for team management endpoints. */
   public readonly team: TeamMethods;
 
@@ -307,14 +287,6 @@ export class TickerDB {
       update: this.webhookUpdate.bind(this),
       delete: this.webhookDelete.bind(this),
       deliveries: this.webhookDeliveries.bind(this),
-    };
-
-    // Bind screener methods so they retain the correct `this` context.
-    this.screeners = {
-      list: this.screenerList.bind(this),
-      create: this.screenerCreate.bind(this),
-      update: this.screenerUpdate.bind(this),
-      delete: this.screenerDelete.bind(this),
     };
 
     // Bind team methods so they retain the correct `this` context.
@@ -606,57 +578,6 @@ export class TickerDB {
       limit: options?.limit,
     });
     return this.request<WebhookDeliveriesResponse>(`/webhooks/deliveries${qs}`);
-  }
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Screener methods (exposed via this.screeners.*)
-  // ────────────────────────────────────────────────────────────────────────────
-
-  private async screenerList(): Promise<APIResponse<ScreenerListResponse>> {
-    return this.request<ScreenerListResponse>("/screeners");
-  }
-
-  private async screenerCreate(
-    options: CreateScreenerOptions,
-  ): Promise<APIResponse<ScreenerMutationResponse>> {
-    return this.request<ScreenerMutationResponse>("/screeners", {
-      method: "POST",
-      body: JSON.stringify({
-        filters: options.filters,
-        name: options.name,
-        timeframe: options.timeframe,
-        sort: options.sort,
-        limit_count: options.limit_count,
-      }),
-    });
-  }
-
-  private async screenerUpdate(
-    options: UpdateScreenerOptions,
-  ): Promise<APIResponse<ScreenerMutationResponse>> {
-    return this.request<ScreenerMutationResponse>("/screeners", {
-      method: "PUT",
-      body: JSON.stringify({
-        id: options.id,
-        filters: options.filters,
-        name: options.name,
-        timeframe: options.timeframe,
-        sort: options.sort,
-        limit_count: options.limit_count,
-      }),
-    });
-  }
-
-  private async screenerDelete(
-    options: DeleteScreenerOptions,
-  ): Promise<APIResponse<DeleteScreenerResponse>> {
-    const qs = buildQueryString({
-      id: options.id,
-      kind: options.kind,
-    });
-    return this.request<DeleteScreenerResponse>(`/screeners${qs}`, {
-      method: "DELETE",
-    });
   }
 
   // ────────────────────────────────────────────────────────────────────────────

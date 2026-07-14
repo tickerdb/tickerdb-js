@@ -1,5 +1,5 @@
 export { TickerDB, SearchBuilder } from "./client.js";
-export type { ScreenerMethods, TeamMethods, WebhookMethods } from "./client.js";
+export type { TeamMethods, WebhookMethods } from "./client.js";
 export { TickerDBError } from "./errors.js";
 export { VERSION } from "./version.js";
 export type {
@@ -13,12 +13,9 @@ export type {
   AssignableTeamRole,
   CancelTeamInviteOptions,
   CancelTeamInviteResponse,
-  CreateScreenerOptions,
   CreateTeamOptions,
   CreateTeamResponse,
   CreateWebhookOptions,
-  DeleteScreenerOptions,
-  DeleteScreenerResponse,
   DeleteWebhookOptions,
   InviteTeamMemberOptions,
   InviteTeamMemberResponse,
@@ -40,15 +37,6 @@ export type {
   RateLimitInfo,
   SchemaField,
   SchemaResponse,
-  Screener,
-  ScreenerFilter,
-  ScreenerFilterKind,
-  ScreenerFilterOp,
-  ScreenerKind,
-  ScreenerListResponse,
-  ScreenerMutationResponse,
-  ScreenerSort,
-  ScreenerTimeframe,
   SearchOptions,
   SearchResponse,
   SetTeamSeatsOptions,
@@ -64,7 +52,6 @@ export type {
   TickerDBConfig,
   TickerContext,
   Timeframe,
-  UpdateScreenerOptions,
   UpdateWebhookOptions,
   RemoveFromWatchlistResponse,
   WatchlistChangeEntry,

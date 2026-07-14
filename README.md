@@ -371,51 +371,6 @@ console.log(data.deliveries[0]);
 // { id, webhook_id, event_type, status, http_status, attempt_count, ... }
 ```
 
-### Screeners
-
-Manage saved screeners for the authenticated account. `list()` returns built-in `defaults`, your `saved` screeners, a combined `screeners` array, and the searchable `fields` catalog.
-
-```typescript
-const { data } = await client.screeners.list();
-console.log(data.defaults.length, data.saved.length);
-```
-
-Create a saved screener from one or more filters:
-
-```typescript
-const { data } = await client.screeners.create({
-  name: "Oversold tech",
-  timeframe: "daily",
-  filters: [
-    { field: "momentum_rsi_zone", op: "in", value: ["deep_oversold", "oversold"] },
-    { field: "sector", op: "eq", value: "Technology" },
-  ],
-  sort: { field: "market_cap", direction: "desc" },
-  limit_count: 30,
-});
-
-console.log(data.screener.id);
-```
-
-Filters can also match band transitions with a `change` filter:
-
-```typescript
-await client.screeners.create({
-  filters: [
-    { type: "change", field: "trend_direction", from: "downtrend", to: "uptrend" },
-  ],
-});
-```
-
-Update or delete a saved screener. Deleting a built-in default hides it (`kind: "default"`); deleting a custom screener removes it.
-
-```typescript
-await client.screeners.update({ id, name: "Renamed screener" });
-
-await client.screeners.delete({ id });                     // remove a saved screener
-await client.screeners.delete({ id: "oversold", kind: "default" }); // hide a default
-```
-
 ### Team
 
 Manage teams for the authenticated account. Listing teams works on any tier; creating teams and inviting members requires the Business plan.

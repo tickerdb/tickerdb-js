@@ -361,33 +361,6 @@ describe("watchlist", () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Screeners
-// ──────────────────────────────────────────────────────────────────────────────
-
-describe("screeners", () => {
-  it("delete uses a query string with id and kind", async () => {
-    queue(jsonResponse({ ok: true }));
-    await client().screeners.delete({ id: "oversold", kind: "default" });
-    const { url, init } = lastCall();
-    expect(init.method).toBe("DELETE");
-    const parsed = new URL(url);
-    expect(parsed.pathname).toBe("/v1/screeners");
-    expect(parsed.searchParams.get("id")).toBe("oversold");
-    expect(parsed.searchParams.get("kind")).toBe("default");
-  });
-
-  it("create posts filters in the body", async () => {
-    queue(jsonResponse({ screener: {} }));
-    await client().screeners.create({ filters: [{ field: "sector", op: "eq", value: "Technology" }] });
-    const { init } = lastCall();
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(init.body as string).filters).toEqual([
-      { field: "sector", op: "eq", value: "Technology" },
-    ]);
-  });
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
 // Team
 // ──────────────────────────────────────────────────────────────────────────────
 
