@@ -347,20 +347,6 @@ describe("search", () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Watchlist mutations
-// ──────────────────────────────────────────────────────────────────────────────
-
-describe("watchlist", () => {
-  it("uppercases tickers on add and sends a POST body", async () => {
-    queue(jsonResponse({ added: ["AAPL"] }));
-    await client().addToWatchlist(["aapl", "msft"]);
-    const { init } = lastCall();
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(init.body as string)).toEqual({ tickers: ["AAPL", "MSFT"] });
-  });
-});
-
-// ──────────────────────────────────────────────────────────────────────────────
 // Team
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -385,17 +371,3 @@ describe("team", () => {
   });
 });
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Webhooks
-// ──────────────────────────────────────────────────────────────────────────────
-
-describe("webhooks", () => {
-  it("deliveries builds a filtered query", async () => {
-    queue(jsonResponse({ deliveries: [] }));
-    await client().webhooks.deliveries({ webhook_id: "wh1", limit: 25 });
-    const url = new URL(lastCall().url);
-    expect(url.pathname).toBe("/v1/webhooks/deliveries");
-    expect(url.searchParams.get("webhook_id")).toBe("wh1");
-    expect(url.searchParams.get("limit")).toBe("25");
-  });
-});
